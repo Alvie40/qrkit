@@ -3,9 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <title>Sala LiveKit</title>
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+  <style>
+    #video-area video { width: 320px; margin: 8px; border-radius: 8px; }
+    #video-area { display: flex; gap: 16px; }
+  </style>
 </head>
 <body>
   <h2>Você entrou na sala: {{.Room}}</h2>
-  <p>Em breve: conexão automática com LiveKit via token.</p>
+  <div id="video-area"></div>
+  <button id="join-btn">Entrar na chamada</button>
+  <script>
+    const roomName = "{{.Room}}";
+    const livekitHost = "ws://localhost:7880";
+    async function fetchToken(identity) {
+      const resp = await fetch(`https://demo.livekit.io/api/token?room=${roomName}&identity=${identity}`);
+      const data = await resp.json();
+      return data.token;
+    }
+    document.getElementById('join-btn').onclick = async () => {
+      const identity = 'user-' + Math.floor(Math.random() * 10000);
+      const token = await fetchToken(identity);
+      const room = new LivekitClient.Room();
+      await room.connect(livekitHost, token);
+      document.getElementById('join-btn').style.display = 'none';
+      // Publica o vídeo local
+      const tracks = await LivekitClient.createLocalTracks({audio:true, video:true});
+      await room.localParticipant.publishTracks(tracks);
+      // Mostra o vídeo local
+      for (const track of tracks) {
+        if (track.kind === 'video') {
+          const el = track.attach();
+          document.getElementById('video-area').appendChild(el);
+        }
+      }
+      // Mostra vídeos remotos
+      room.on('trackSubscribed', (track, publication, participant) => {
+        if (track.kind === 'video') {
+          const el = track.attach();
+          document.getElementById('video-area').appendChild(el);
+        }
+      });
+    };
+  </script>
 </body>
 </html>

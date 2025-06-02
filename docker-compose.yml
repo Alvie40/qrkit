@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  qrkit:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - LIVEKIT_API_KEY=mykey
+      - LIVEKIT_API_SECRET=mysecret
+      - LIVEKIT_HOST=livekit:7880
+    depends_on:
+      - livekit
+
+  livekit:
+    image: livekit/livekit-server
+    command: --dev
+    ports:
+      - "7880:7880"
+      - "7881:7881/udp"
+    environment:
+      - "LIVEKIT_KEYS=mykey: mysecret"
+      - LIVEKIT_HOST=0.0.0.0

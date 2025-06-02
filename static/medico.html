@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Página do Médico</title>
+  <script>
+    // Checa se já existe sala na URL, se não, fica aguardando
+    function checkSala() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('room')) {
+        setTimeout(() => {
+          // Tenta redirecionar para a sala do empregado (exemplo: sala-12345)
+          fetch('/last-room')
+            .then(r => r.json())
+            .then(data => {
+              if (data.room) {
+                window.location.href = '/medico?room=' + data.room;
+              } else {
+                checkSala();
+              }
+            });
+        }, 2000);
+      }
+    }
+    window.onload = checkSala;
+  </script>
+</head>
+<body>
+  <h2>Bem-vindo, Médico!</h2>
+  <p>Aguardando o empregado entrar na chamada...</p>
+  <p>Você será redirecionado automaticamente para a sala assim que ela estiver disponível.</p>
+</body>
+</html>

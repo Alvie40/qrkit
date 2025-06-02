@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Página do Empregado</title>
+</head>
+<body>
+  <h2>Bem-vindo, Empregado!</h2>
+  <button id="btn-entrar">Simular leitura do QRCode</button>
+  <script>
+    document.getElementById('btn-entrar').onclick = function() {
+      // Gera um nome de sala aleatório e redireciona
+      const sala = 'sala-' + Math.floor(Math.random() * 100000);
+      window.location.href = '/video?room=' + sala;
+    };
+  </script>
+</body>
+</html>
