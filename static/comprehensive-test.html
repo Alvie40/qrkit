@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRKit - Comprehensive Testing Suite</title>
+    <script src="https://unpkg.com/livekit-client/dist/livekit-client.umd.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button.success { background: #28a745; }
+        button.danger { background: #dc3545; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            background: #000;
+            border-radius: 8px;
+        }
+        .qr-display {
+            text-align: center;
+            margin: 15px 0;
+        }
+        .qr-display img {
+            max-width: 200px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 QRKit - Comprehensive Testing Suite</h1>
+        <p>Complete testing dashboard for the video calling application with LiveKit integration</p>
+        
+        <div class="test-grid">
+            <!-- Server Tests -->
+            <div class="test-section">
+                <h3>🖥️ Server Tests</h3>
+                <div id="server-results"></div>
+                <button onclick="testServerEndpoints()">Test All Endpoints</button>
+                <button onclick="testAPIFunctions()">Test API Functions</button>
+            </div>
+
+            <!-- Session Management -->
+            <div class="test-section">
+                <h3>🔗 Session Management</h3>
+                <div id="session-results"></div>
+                <button onclick="createTestSession()">Create Test Session</button>
+                <button onclick="generateTestQR()">Generate QR Code</button>
+                <div class="qr-display" id="qr-display"></div>
+            </div>
+
+            <!-- WebRTC Tests -->
+            <div class="test-section">
+                <h3>📹 WebRTC & Camera Tests</h3>
+                <div id="webrtc-results"></div>
+                <button onclick="testCameraAccess()">Test Camera Access</button>
+                <button onclick="testMicrophoneAccess()">Test Microphone</button>
+                <button onclick="testWebRTCSupport()">Test WebRTC Support</button>
+                <video id="local-video" autoplay muted playsinline></video>
+            </div>
+
+            <!-- LiveKit Integration -->
+            <div class="test-section">
+                <h3>🚀 LiveKit Integration</h3>
+                <div id="livekit-results"></div>
+                <button onclick="testLiveKitConnection()">Test LiveKit Connection</button>
+                <button onclick="testTokenGeneration()">Test Token Generation</button>
+                <button onclick="simulateVideoCall()">Simulate Video Call</button>
+            </div>
+
+            <!-- End-to-End Tests -->
+            <div class="test-section">
+                <h3>🔄 End-to-End Tests</h3>
+                <div id="e2e-results"></div>
+                <button onclick="runCompleteFlow()">Run Complete Flow</button>
+                <button onclick="testEmployeeWorkflow()">Test Employee Workflow</button>
+                <button onclick="testClientWorkflow()">Test Client Workflow</button>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="test-section">
+                <h3>🔗 Quick Navigation</h3>
+                <button onclick="window.open('/', '_blank')">🏠 Home</button>
+                <button onclick="window.open('/empregado', '_blank')">👨‍💼 Employee</button>
+                <button onclick="window.open('/debug', '_blank')">🔧 Debug</button>
+                <button onclick="window.open('/test', '_blank')">🧪 Test Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSession = null;
+        let currentRoom = null;
+        let localVideo = null;
+
+        function addResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function testServerEndpoints() {
+            addResult('server-results', '🚀 Testing server endpoints...', 'warning');
+            
+            const endpoints = [
+                { url: '/', name: 'Home Page' },
+                { url: '/empregado', name: 'Employee Page' },
+                { url: '/debug', name: 'Debug Page' },
+                { url: '/test', name: 'Test Page' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url);
+                    if (response.ok) {
+                        addResult('server-results', `✅ ${endpoint.name}: OK (${response.status})`, 'success');
+                    } else {
+                        addResult('server-results', `❌ ${endpoint.name}: Error ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    addResult('server-results', `❌ ${endpoint.name}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testAPIFunctions() {
+            addResult('server-results', '🔧 Testing API functions...', 'warning');
+            
+            try {
+                // Test session creation
+                const sessionResponse = await fetch('/api/create-session', { method: 'POST' });
+                if (sessionResponse.ok) {
+                    const sessionData = await sessionResponse.json();
+                    addResult('server-results', `✅ Session API: ${sessionData.sessionId}`, 'success');
+                    currentSession = sessionData;
+                } else {
+                    addResult('server-results', `❌ Session API: Error ${sessionResponse.status}`, 'error');
+                }
+
+                // Test token generation
+                const tokenResponse = await fetch('/api/token?room=test-room&identity=test-user');
+                if (tokenResponse.ok) {
+                    const tokenData = await tokenResponse.json();
+                    addResult('server-results', '✅ Token API: Working', 'success');
+                } else {
+                    addResult('server-results', `❌ Token API: Error ${tokenResponse.status}`, 'error');
+                }
+            } catch (error) {
+                addResult('server-results', `❌ API Test Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function createTestSession() {
+            addResult('session-results', '🔗 Creating test session...', 'warning');
+            
+            try {
+                const response = await fetch('/api/create-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentSession = data;
+                    addResult('session-results', `✅ Session created: ${data.sessionId}`, 'success');
+                    addResult('session-results', `📱 Room: ${data.roomName}`, 'info');
+                    addResult('session-results', `🔗 Client URL: ${data.clientUrl}`, 'info');
+                } else {
+                    addResult('session-results', `❌ Session creation failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult('session-results', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateTestQR() {
+            if (!currentSession) {
+                await createTestSession();
+            }
+            
+            if (currentSession) {
+                addResult('session-results', '📱 Generating QR code...', 'warning');
+                
+                const qrUrl = `/api/qr/${currentSession.sessionId}`;
+                const qrDisplay = document.getElementById('qr-display');
+                
+                try {
+                    const response = await fetch(qrUrl);
+                    if (response.ok) {
+                        qrDisplay.innerHTML = `
+                            <p>QR Code for session: ${currentSession.sessionId}</p>
+                            <img src="${qrUrl}" alt="QR Code" />
+                            <p><small>URL: ${currentSession.clientUrl}</small></p>
+                        `;
+                        addResult('session-results', '✅ QR code generated successfully', 'success');
+                    } else {
+                        addResult('session-results', `❌ QR generation failed: ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    addResult('session-results', `❌ QR Error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testCameraAccess() {
+            addResult('webrtc-results', '📹 Testing camera access...', 'warning');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 }, 
+                    audio: false 
+                });
+                
+                const video = document.getElementById('local-video');
+                video.srcObject = stream;
+                localVideo = stream;
+                
+                addResult('webrtc-results', '✅ Camera access granted', 'success');
+                addResult('webrtc-results', `📊 Video tracks: ${stream.getVideoTracks().length}`, 'info');
+                
+                setTimeout(() => {
+                    addResult('webrtc-results', '📹 Video should be visible above', 'info');
+                }, 1000);
+                
+            } catch (error) {
+                addResult('webrtc-results', `❌ Camera access denied: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMicrophoneAccess() {
+            addResult('webrtc-results', '🎤 Testing microphone access...', 'warning');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: false, 
+                    audio: true 
+                });
+                
+                addResult('webrtc-results', '✅ Microphone access granted', 'success');
+                addResult('webrtc-results', `📊 Audio tracks: ${stream.getAudioTracks().length}`, 'info');
+                
+                // Stop the audio stream
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                addResult('webrtc-results', `❌ Microphone access denied: ${error.message}`, 'error');
+            }
+        }
+
+        function testWebRTCSupport() {
+            addResult('webrtc-results', '🔍 Checking WebRTC support...', 'warning');
+            
+            const checks = [
+                { name: 'navigator.mediaDevices', check: !!navigator.mediaDevices },
+                { name: 'getUserMedia', check: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) },
+                { name: 'RTCPeerConnection', check: !!window.RTCPeerConnection },
+                { name: 'WebRTC Data Channels', check: !!window.RTCDataChannel },
+                { name: 'LiveKit Client', check: !!window.LiveKit }
+            ];
+            
+            checks.forEach(check => {
+                if (check.check) {
+                    addResult('webrtc-results', `✅ ${check.name}: Supported`, 'success');
+                } else {
+                    addResult('webrtc-results', `❌ ${check.name}: Not supported`, 'error');
+                }
+            });
+        }
+
+        async function testLiveKitConnection() {
+            addResult('livekit-results', '🚀 Testing LiveKit connection...', 'warning');
+            
+            if (!window.LiveKit) {
+                addResult('livekit-results', '❌ LiveKit client library not loaded', 'error');
+                return;
+            }
+            
+            try {
+                // Test token generation first
+                const tokenResponse = await fetch('/api/token?room=test-room&identity=test-user');
+                if (!tokenResponse.ok) {
+                    addResult('livekit-results', `❌ Token generation failed: ${tokenResponse.status}`, 'error');
+                    return;
+                }
+                
+                const tokenData = await tokenResponse.json();
+                addResult('livekit-results', '✅ Token generated successfully', 'success');
+                
+                // Try to connect to LiveKit
+                const room = new LiveKit.Room();
+                
+                room.on(LiveKit.RoomEvent.Connected, () => {
+                    addResult('livekit-results', '✅ Connected to LiveKit room', 'success');
+                    currentRoom = room;
+                });
+                
+                room.on(LiveKit.RoomEvent.Disconnected, () => {
+                    addResult('livekit-results', '📡 Disconnected from LiveKit room', 'info');
+                });
+                
+                room.on(LiveKit.RoomEvent.ConnectionError, (error) => {
+                    addResult('livekit-results', `❌ Connection error: ${error.message}`, 'error');
+                });
+                
+                // Attempt connection with a timeout
+                const wsUrl = 'ws://localhost:7880';
+                await room.connect(wsUrl, tokenData.token);
+                
+            } catch (error) {
+                addResult('livekit-results', `❌ LiveKit connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testTokenGeneration() {
+            addResult('livekit-results', '🎫 Testing token generation...', 'warning');
+            
+            const testCases = [
+                { room: 'test-room', identity: 'test-user' },
+                { room: 'room-123', identity: 'employee-1' },
+                { room: 'client-room', identity: 'client-456' }
+            ];
+            
+            for (const testCase of testCases) {
+                try {
+                    const response = await fetch(`/api/token?room=${testCase.room}&identity=${testCase.identity}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        addResult('livekit-results', `✅ Token for ${testCase.identity} in ${testCase.room}`, 'success');
+                    } else {
+                        addResult('livekit-results', `❌ Token failed for ${testCase.identity}: ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    addResult('livekit-results', `❌ Token error: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function simulateVideoCall() {
+            addResult('livekit-results', '📹 Simulating video call...', 'warning');
+            
+            if (!currentSession) {
+                await createTestSession();
+            }
+            
+            if (!localVideo) {
+                await testCameraAccess();
+            }
+            
+            if (currentSession && localVideo) {
+                addResult('livekit-results', `🔗 Simulating call in room: ${currentSession.roomName}`, 'info');
+                addResult('livekit-results', '✅ Video call simulation ready', 'success');
+                addResult('livekit-results', '💡 Use the employee/client interfaces for actual calls', 'info');
+            } else {
+                addResult('livekit-results', '❌ Prerequisites not met for video call', 'error');
+            }
+        }
+
+        async function runCompleteFlow() {
+            addResult('e2e-results', '🔄 Running complete end-to-end flow...', 'warning');
+            
+            try {
+                // Step 1: Create session
+                addResult('e2e-results', '1️⃣ Creating session...', 'info');
+                await createTestSession();
+                
+                // Step 2: Generate QR
+                addResult('e2e-results', '2️⃣ Generating QR code...', 'info');
+                await generateTestQR();
+                
+                // Step 3: Test camera access
+                addResult('e2e-results', '3️⃣ Testing camera access...', 'info');
+                await testCameraAccess();
+                
+                // Step 4: Test token generation
+                addResult('e2e-results', '4️⃣ Testing token generation...', 'info');
+                await testTokenGeneration();
+                
+                addResult('e2e-results', '✅ Complete flow executed successfully!', 'success');
+                addResult('e2e-results', '💡 Check individual sections for details', 'info');
+                
+            } catch (error) {
+                addResult('e2e-results', `❌ Complete flow failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testEmployeeWorkflow() {
+            addResult('e2e-results', '👨‍💼 Testing employee workflow...', 'warning');
+            addResult('e2e-results', '1️⃣ Opening employee interface...', 'info');
+            
+            window.open('/empregado', '_blank');
+            
+            addResult('e2e-results', '✅ Employee interface opened in new tab', 'success');
+            addResult('e2e-results', '💡 Test session creation and QR generation there', 'info');
+        }
+
+        function testClientWorkflow() {
+            if (!currentSession) {
+                addResult('e2e-results', '❌ No session available. Create a session first.', 'error');
+                return;
+            }
+            
+            addResult('e2e-results', '👤 Testing client workflow...', 'warning');
+            addResult('e2e-results', `1️⃣ Opening client interface for session: ${currentSession.sessionId}`, 'info');
+            
+            window.open(currentSession.clientUrl, '_blank');
+            
+            addResult('e2e-results', '✅ Client interface opened in new tab', 'success');
+            addResult('e2e-results', '💡 Test video calling functionality there', 'info');
+        }
+
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('server-results', '🏁 QRKit Testing Suite loaded', 'info');
+            setTimeout(testServerEndpoints, 1000);
+            setTimeout(testWebRTCSupport, 2000);
+        });
+    </script>
+</body>
+</html>

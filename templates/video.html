@@ -3,47 +3,388 @@
 <head>
   <meta charset="UTF-8">
   <title>Sala LiveKit</title>
-  <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+  <!-- Múltiplas fontes do LiveKit para garantir carregamento -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.4/dist/livekit-client.umd.min.js"></script>
+  <script>
+    // Fallback se o primeiro CDN falhar
+    if (typeof LivekitClient === 'undefined') {
+      document.write('<script src="https://unpkg.com/livekit-client@2.5.4/dist/livekit-client.umd.min.js"><\/script>');
+    }
+  </script>
   <style>
-    #video-area video { width: 320px; margin: 8px; border-radius: 8px; }
-    #video-area { display: flex; gap: 16px; }
+    #video-area video { 
+      width: 320px; 
+      margin: 8px; 
+      border-radius: 8px; 
+      background: #000;
+    }
+    #video-area { 
+      display: flex; 
+      gap: 16px; 
+      flex-wrap: wrap;
+    }
+    #status { 
+      margin: 16px 0; 
+      color: #444; 
+      font-weight: bold; 
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    .local-video {
+      border: 3px solid #007bff !important;
+    }
+    .remote-video {
+      border: 3px solid #28a745 !important;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
   </style>
 </head>
-<body>
-  <h2>Você entrou na sala: {{.Room}}</h2>
+<body>  <h2>Você entrou na sala: {{.Room}}</h2>
+  <div id="status">Aguardando conexão...</div>
+  <div id="participants-count" style="margin: 8px 0; font-size: 14px; color: #666;">Participantes: 0</div>
+  
+  <!-- Avisos específicos para macOS -->
+  <div id="macos-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 10px 0; border-radius: 6px;">
+    <strong>🍎 Instruções para macOS:</strong><br>
+    1. <strong>Permissões do Sistema:</strong> Vá em Configurações → Privacidade e Segurança → Câmera/Microfone e certifique-se que o seu navegador está autorizado<br>
+    2. <strong>Múltiplas abas:</strong> Para empregado e médico em abas separadas, permita acesso para cada aba individualmente<br>
+    3. <strong>Teste primeiro:</strong> Use o botão "Testar Mídia" antes de entrar na chamada
+  </div>
+  
   <div id="video-area"></div>
-  <button id="join-btn">Entrar na chamada</button>
-  <script>
+  <div id="controls">
+    <button id="test-media-btn" style="background: #17a2b8; margin-right: 10px;">🎥 Testar Mídia</button>
+    <button id="join-btn">Entrar na chamada</button>
+    <button id="leave-btn" style="display: none; background: #dc3545;">Sair da chamada</button>
+  </div>  <div id="debug-info" style="margin-top: 16px; padding: 8px; background: #f0f0f0; border-radius: 4px; font-size: 12px; font-family: monospace; display: block;">
+    <strong>Debug:</strong><br>
+    <div id="debug-content"></div>
+  </div>
+  <script>    const status = document.getElementById('status');
     const roomName = "{{.Room}}";
-    const livekitHost = "ws://localhost:7880";
-    async function fetchToken(identity) {
-      const resp = await fetch(`https://demo.livekit.io/api/token?room=${roomName}&identity=${identity}`);
+    const livekitHost = window.location.protocol + '//' + window.location.hostname + ':7880';
+    let participantCount = 0;
+    
+    function updateParticipantCount() {
+      document.getElementById('participants-count').textContent = `Participantes: ${participantCount}`;
+    }
+      function addDebugInfo(message) {
+      const debugContent = document.getElementById('debug-content');
+      const timestamp = new Date().toLocaleTimeString();
+      debugContent.innerHTML += `[${timestamp}] ${message}<br>`;
+      document.getElementById('debug-info').style.display = 'block';
+    }    // Adiciona informações iniciais de debug
+    addDebugInfo(`Página carregada. Sala: ${roomName}`);
+    addDebugInfo(`LiveKit Host: ${livekitHost}`);
+    addDebugInfo(`User Agent: ${navigator.userAgent}`);
+    
+    // Aguarda carregamento do LiveKit e faz verificações
+    setTimeout(() => {
+      addDebugInfo(`LivekitClient carregado: ${typeof LivekitClient !== 'undefined' ? 'Sim' : 'Não'}`);
+      if (typeof LivekitClient !== 'undefined') {
+        addDebugInfo(`LivekitClient.Room disponível: ${typeof LivekitClient.Room !== 'undefined' ? 'Sim' : 'Não'}`);
+      } else {
+        addDebugInfo('❌ PROBLEMA CRÍTICO: LiveKit Client SDK não carregou!');
+        addDebugInfo('Possíveis soluções: Verificar conexão, desabilitar bloqueadores, tentar modo incógnito');
+        updateStatus('❌ Erro: LiveKit SDK não carregou. Verifique sua conexão com internet.');
+      }
+    }, 1000);
+    
+    function updateStatus(message) {
+      status.textContent = message;
+      console.log('Status:', message);
+      addDebugInfo(message);
+    }
+      async function fetchToken(identity) {
+      updateStatus('Solicitando token...');
+      addDebugInfo(`Solicitando token para identidade: ${identity}, sala: ${roomName}`);
+      const resp = await fetch(`/token?room=${roomName}&identity=${identity}`);
+      if (!resp.ok) {
+        addDebugInfo(`Erro HTTP: ${resp.status} ${resp.statusText}`);
+        throw new Error('Erro ao obter token do servidor');
+      }
       const data = await resp.json();
+      addDebugInfo(`Token recebido: ${data.token.substring(0, 50)}...`);
       return data.token;
     }
-    document.getElementById('join-btn').onclick = async () => {
-      const identity = 'user-' + Math.floor(Math.random() * 10000);
-      const token = await fetchToken(identity);
-      const room = new LivekitClient.Room();
-      await room.connect(livekitHost, token);
-      document.getElementById('join-btn').style.display = 'none';
-      // Publica o vídeo local
-      const tracks = await LivekitClient.createLocalTracks({audio:true, video:true});
-      await room.localParticipant.publishTracks(tracks);
-      // Mostra o vídeo local
-      for (const track of tracks) {
-        if (track.kind === 'video') {
-          const el = track.attach();
-          document.getElementById('video-area').appendChild(el);
-        }
+      function addVideoElement(track, participant, isLocal = false) {
+      const el = track.attach();
+      el.style.width = '320px';
+      el.style.margin = '8px';
+      el.style.borderRadius = '8px';
+      el.className = isLocal ? 'local-video' : 'remote-video';
+      el.setAttribute('data-participant', participant.identity);
+      
+      // Adiciona label para identificar o vídeo
+      const container = document.createElement('div');
+      container.style.position = 'relative';
+      container.style.display = 'inline-block';
+      
+      const label = document.createElement('div');
+      label.textContent = isLocal ? 'Você' : participant.identity;
+      label.style.position = 'absolute';
+      label.style.bottom = '8px';
+      label.style.left = '8px';
+      label.style.background = 'rgba(0,0,0,0.7)';
+      label.style.color = 'white';
+      label.style.padding = '4px 8px';
+      label.style.borderRadius = '4px';
+      label.style.fontSize = '12px';
+      
+      container.appendChild(el);
+      container.appendChild(label);
+      document.getElementById('video-area').appendChild(container);
+      
+      if (isLocal) {
+        updateStatus('✅ Seu vídeo está ativo! Aguardando outros participantes...');
+      } else {
+        updateStatus(`✅ Vídeo de ${participant.identity} conectado!`);
       }
-      // Mostra vídeos remotos
-      room.on('trackSubscribed', (track, publication, participant) => {
-        if (track.kind === 'video') {
-          const el = track.attach();
-          document.getElementById('video-area').appendChild(el);
+    }      document.getElementById('join-btn').onclick = async () => {
+      // Gera identidade única baseada no tipo de usuário e timestamp
+      const userType = roomName.includes('empregado-') ? 'empregado' : 'medico';
+      const identity = userType + '-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+        try {
+        // Verificação prévia do LiveKit
+        if (typeof LivekitClient === 'undefined') {
+          throw new Error('LiveKit Client SDK não carregou. Recarregue a página ou verifique sua conexão com internet.');
         }
-      });
+        
+        updateStatus('🔐 Verificando permissões de mídia...');
+        
+        // Primeiro, verifica se as permissões já foram concedidas
+        const permissions = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        }).catch(err => {
+          console.error('Erro de permissão inicial:', err);
+          throw err;
+        });
+        
+        // Se chegou aqui, as permissões foram concedidas
+        updateStatus('✅ Permissões concedidas! Conectando à sala...');
+        
+        const token = await fetchToken(identity);
+        
+        const room = new LivekitClient.Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+        
+        // Configura eventos antes da conexão
+        room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+          console.log('Track subscribed:', track.kind, 'from', participant.identity);
+          if (track.kind === 'video') {
+            addVideoElement(track, participant, false);
+          }
+        });
+        
+        room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+          console.log('Track unsubscribed:', track.kind, 'from', participant.identity);
+          track.detach().forEach(el => el.remove());
+        });
+        
+        room.on(LivekitClient.RoomEvent.LocalTrackPublished, (publication, participant) => {
+          console.log('Local track published:', publication.kind);
+          if (publication.kind === 'video') {
+            updateStatus('Seu vídeo foi publicado!');
+          }
+        });
+          room.on(LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+          console.log('Participant connected:', participant.identity);
+          participantCount++;
+          updateParticipantCount();
+          updateStatus(`${participant.identity} entrou na sala!`);
+        });        room.on(LivekitClient.RoomEvent.ParticipantDisconnected, (participant) => {
+          console.log('Participant disconnected:', participant.identity);
+          participantCount--;
+          updateParticipantCount();
+          // Remove vídeos do participante
+          const videos = document.querySelectorAll(`[data-participant="${participant.identity}"]`);
+          videos.forEach(video => {
+            // Remove o container pai se existir
+            const container = video.parentElement;
+            if (container && container.parentElement) {
+              container.parentElement.removeChild(container);
+            } else {
+              video.remove();
+            }
+          });
+          updateStatus(`${participant.identity} saiu da sala.`);
+        });
+        
+        room.on(LivekitClient.RoomEvent.Disconnected, () => {
+          updateStatus('Desconectado da sala.');
+        });        // Conecta à sala
+        addDebugInfo(`Tentando conectar ao LiveKit: ${livekitHost}`);
+        await room.connect(livekitHost, token);
+        addDebugInfo('Conexão com LiveKit estabelecida!');
+        updateStatus('Conectado! Ativando câmera e microfone...');
+        
+        // Conta o participante local
+        participantCount = room.remoteParticipants.size + 1; // +1 para o participante local
+        updateParticipantCount();
+        
+        document.getElementById('join-btn').style.display = 'none';
+        document.getElementById('leave-btn').style.display = 'inline-block';
+          // Cria e publica tracks de vídeo e áudio
+        try {
+          updateStatus('Solicitando permissões de câmera e microfone...');
+            // Configurações otimizadas para desenvolvimento local e múltiplas abas
+          const videoTrack = await LivekitClient.createLocalVideoTrack({
+            resolution: LivekitClient.VideoPresets.h540.resolution, // Resolução menor para melhor performance
+            deviceId: undefined, // Deixa o browser escolher a câmera padrão
+            facingMode: 'user', // Câmera frontal por padrão
+          });
+          
+          const audioTrack = await LivekitClient.createLocalAudioTrack({
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true, // Adiciona controle automático de ganho
+            deviceId: undefined, // Deixa o browser escolher o microfone padrão
+          });
+          
+          updateStatus('Publicando vídeo e áudio...');
+          
+          // Publica as tracks
+          await room.localParticipant.publishTrack(videoTrack, {
+            name: `${identity}-video`,
+            source: LivekitClient.Track.Source.Camera,
+          });
+          
+          await room.localParticipant.publishTrack(audioTrack, {
+            name: `${identity}-audio`, 
+            source: LivekitClient.Track.Source.Microphone,
+          });
+          
+          // Exibe o vídeo local imediatamente
+          addVideoElement(videoTrack, room.localParticipant, true);
+          
+          updateStatus('Vídeo e áudio publicados! Você está online na sala.');
+          
+        } catch (mediaError) {
+          console.error('Erro ao acessar mídia:', mediaError);
+            // Mensagens de erro mais específicas
+          if (mediaError.name === 'NotAllowedError') {
+            updateStatus('❌ Permissão negada para câmera/microfone. Clique no ícone da câmera na barra de endereços e permita o acesso. Para múltiplas abas, permita para cada aba separadamente.');
+          } else if (mediaError.name === 'NotFoundError') {
+            updateStatus('❌ Câmera ou microfone não encontrados. Verifique se estão conectados.');
+          } else if (mediaError.name === 'NotReadableError') {
+            updateStatus('❌ Câmera/microfone em uso por outro aplicativo. Feche outros programas de vídeo ou use abas diferentes para empregado e médico.');
+          } else if (mediaError.name === 'AbortError') {
+            updateStatus('❌ Acesso à mídia foi interrompido. Tente novamente.');
+          } else {
+            updateStatus('❌ Erro ao acessar mídia: ' + mediaError.message + ' (Tipo: ' + mediaError.name + ')');
+          }
+        }      } catch (error) {
+        console.error('Erro geral:', error);
+        addDebugInfo(`Erro geral: ${error.name} - ${error.message}`);
+        
+        let errorMsg = 'Erro: ';
+        if (error.message.includes('token')) {
+          errorMsg += 'Falha ao obter token de autenticação. Verifique se o backend está funcionando.';
+        } else if (error.message.includes('connect') || error.message.includes('WebSocket')) {
+          errorMsg += 'Falha ao conectar com o servidor LiveKit. Verifique se o LiveKit está rodando na porta 7880.';
+        } else {
+          errorMsg += error.message;
+        }
+        
+        updateStatus(errorMsg);
+        
+        // Mostra botão para tentar novamente
+        document.getElementById('join-btn').style.display = 'inline-block';
+        document.getElementById('leave-btn').style.display = 'none';
+      }
+    };    // Funcionalidade de teste de mídia
+    document.getElementById('test-media-btn').onclick = async () => {
+      try {
+        updateStatus('🧪 Testando acesso à câmera e microfone...');
+        
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        
+        // Cria um elemento de vídeo de teste
+        const testVideo = document.createElement('video');
+        testVideo.srcObject = stream;
+        testVideo.autoplay = true;
+        testVideo.muted = true; // Evita feedback de áudio
+        testVideo.style.width = '320px';
+        testVideo.style.border = '2px solid #28a745';
+        testVideo.style.borderRadius = '8px';
+        testVideo.style.margin = '10px';
+        
+        const testContainer = document.createElement('div');
+        testContainer.id = 'test-container';
+        testContainer.style.textAlign = 'center';
+        
+        const testLabel = document.createElement('div');
+        testLabel.textContent = '✅ Teste de Mídia - Você deveria se ver aqui';
+        testLabel.style.color = '#28a745';
+        testLabel.style.fontWeight = 'bold';
+        testLabel.style.margin = '10px';
+        
+        const stopTestBtn = document.createElement('button');
+        stopTestBtn.textContent = '⏹️ Parar Teste';
+        stopTestBtn.style.background = '#dc3545';
+        stopTestBtn.style.margin = '10px';
+        stopTestBtn.onclick = () => {
+          stream.getTracks().forEach(track => track.stop());
+          testContainer.remove();
+          updateStatus('Teste finalizado. Agora você pode entrar na chamada.');
+        };
+        
+        testContainer.appendChild(testLabel);
+        testContainer.appendChild(testVideo);
+        testContainer.appendChild(stopTestBtn);
+        
+        document.getElementById('video-area').appendChild(testContainer);
+        
+        updateStatus('✅ Teste bem-sucedido! Câmera e microfone funcionando. Você pode entrar na chamada.');
+        
+      } catch (error) {
+        console.error('Erro no teste de mídia:', error);
+        
+        let errorMsg = '❌ Teste de mídia falhou: ';
+        if (error.name === 'NotAllowedError') {
+          errorMsg += 'Permissão negada. No macOS, vá em Safari → Preferências → Sites → Câmera/Microfone e permita para este site.';
+        } else if (error.name === 'NotFoundError') {
+          errorMsg += 'Câmera/microfone não encontrados. Verifique as conexões.';
+        } else if (error.name === 'NotReadableError') {
+          errorMsg += 'Câmera/microfone em uso por outro app. Feche outros programas de vídeo.';
+        } else {
+          errorMsg += `${error.message} (Tipo: ${error.name})`;
+        }
+        
+        updateStatus(errorMsg);
+      }
+    };
+
+    // Funcionalidade de sair da chamada
+    document.getElementById('leave-btn').onclick = function() {
+      updateStatus('Saindo da chamada...');
+      location.reload(); // Recarrega a página para permitir nova conexão
     };
   </script>
 </body>

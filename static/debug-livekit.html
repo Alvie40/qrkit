@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🔍 Debug LiveKit - QRKit</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      background: #f5f5f5; 
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #f9f9f9;
+    }
+    .success { border-color: #28a745; background: #d4edda; }
+    .error { border-color: #dc3545; background: #f8d7da; }
+    .warning { border-color: #ffc107; background: #fff3cd; }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+    }
+    button:hover { background: #0056b3; }
+    #debug-log {
+      background: #000;
+      color: #0f0;
+      padding: 15px;
+      font-family: monospace;
+      font-size: 12px;
+      border-radius: 4px;
+      height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Debug LiveKit - QRKit</h1>
+    <p>Esta página testa cada componente do sistema passo a passo.</p>
+
+    <div class="test-section" id="section-1">
+      <h3>1️⃣ Teste de Carregamento do LiveKit SDK</h3>
+      <p>Verificando se a biblioteca LiveKit foi carregada corretamente...</p>
+      <button onclick="testLibraryLoad()">🔄 Testar Carregamento</button>
+      <div id="result-1"></div>
+    </div>
+
+    <div class="test-section" id="section-2">
+      <h3>2️⃣ Teste de Conectividade com Backend</h3>
+      <p>Verificando se consegue obter token do backend...</p>
+      <button onclick="testBackendConnection()">🔄 Testar Backend</button>
+      <div id="result-2"></div>
+    </div>
+
+    <div class="test-section" id="section-3">
+      <h3>3️⃣ Teste de Permissões de Mídia</h3>
+      <p>Verificando acesso à câmera e microfone...</p>
+      <button onclick="testMediaPermissions()">🔄 Testar Mídia</button>
+      <div id="result-3"></div>
+    </div>
+
+    <div class="test-section" id="section-4">
+      <h3>4️⃣ Teste de Conexão LiveKit</h3>
+      <p>Tentando conectar ao servidor LiveKit...</p>
+      <button onclick="testLiveKitConnection()" id="test-livekit-btn" disabled>🔄 Testar LiveKit</button>
+      <div id="result-4"></div>
+    </div>
+
+    <div class="test-section" id="section-5">
+      <h3>5️⃣ Teste Completo de Vídeo</h3>
+      <p>Teste final: vídeo funcionando...</p>
+      <button onclick="testCompleteVideo()" id="test-video-btn" disabled>🔄 Testar Vídeo</button>
+      <div id="result-5"></div>
+      <div id="video-container"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>📋 Log de Debug</h3>
+      <div id="debug-log"></div>
+      <button onclick="clearLog()">🗑️ Limpar Log</button>
+    </div>
+  </div>
+
+  <!-- Carregamento do LiveKit SDK -->
+  <script src="https://unpkg.com/livekit-client@2.5.4/dist/livekit-client.umd.min.js"></script>
+  
+  <script>
+    let currentToken = null;
+    let currentRoom = null;
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logElement = document.getElementById('debug-log');
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+      logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+      logElement.scrollTop = logElement.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+
+    function clearLog() {
+      document.getElementById('debug-log').textContent = '';
+    }
+
+    function updateResult(sectionNum, message, success = null) {
+      const resultDiv = document.getElementById(`result-${sectionNum}`);
+      const section = document.getElementById(`section-${sectionNum}`);
+      
+      resultDiv.innerHTML = `<p>${message}</p>`;
+      
+      if (success === true) {
+        section.className = 'test-section success';
+      } else if (success === false) {
+        section.className = 'test-section error';
+      } else {
+        section.className = 'test-section warning';
+      }
+    }
+
+    // Teste 1: Carregamento da biblioteca
+    function testLibraryLoad() {
+      log('Iniciando teste de carregamento da biblioteca...');
+      
+      try {
+        if (typeof LivekitClient === 'undefined') {
+          throw new Error('LivekitClient não está definido');
+        }
+        
+        log('LivekitClient está disponível');
+        
+        if (typeof LivekitClient.Room === 'undefined') {
+          throw new Error('LivekitClient.Room não está disponível');
+        }
+        
+        log('LivekitClient.Room está disponível');
+        
+        if (typeof LivekitClient.createLocalVideoTrack === 'undefined') {
+          throw new Error('LivekitClient.createLocalVideoTrack não está disponível');
+        }
+        
+        log('LivekitClient.createLocalVideoTrack está disponível');
+        
+        updateResult(1, '✅ LiveKit SDK carregado com sucesso!', true);
+        document.getElementById('test-livekit-btn').disabled = false;
+        log('Teste de carregamento: SUCESSO', 'success');
+        
+      } catch (error) {
+        updateResult(1, `❌ Erro no carregamento: ${error.message}`, false);
+        log(`Erro no carregamento da biblioteca: ${error.message}`, 'error');
+      }
+    }
+
+    // Teste 2: Conectividade com backend
+    async function testBackendConnection() {
+      log('Iniciando teste de conectividade com backend...');
+      
+      try {
+        const response = await fetch('/token?room=test&identity=debug-user');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.token) {
+          throw new Error('Token não recebido do servidor');
+        }
+        
+        currentToken = data.token;
+        log(`Token recebido: ${data.token.substring(0, 50)}...`);
+        
+        updateResult(2, '✅ Backend respondendo corretamente!', true);
+        log('Teste de backend: SUCESSO', 'success');
+        
+      } catch (error) {
+        updateResult(2, `❌ Erro no backend: ${error.message}`, false);
+        log(`Erro na conectividade com backend: ${error.message}`, 'error');
+      }
+    }
+
+    // Teste 3: Permissões de mídia
+    async function testMediaPermissions() {
+      log('Iniciando teste de permissões de mídia...');
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: 'user'
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
+        
+        log(`Stream obtido com ${stream.getVideoTracks().length} track(s) de vídeo e ${stream.getAudioTracks().length} track(s) de áudio`);
+        
+        // Para o stream para não manter a câmera ocupada
+        stream.getTracks().forEach(track => track.stop());
+        
+        updateResult(3, '✅ Permissões de mídia concedidas!', true);
+        log('Teste de permissões: SUCESSO', 'success');
+        
+      } catch (error) {
+        let errorMsg = `Erro: ${error.name} - ${error.message}`;
+        
+        if (error.name === 'NotAllowedError') {
+          errorMsg += '\n💡 Solução: Permita acesso à câmera/microfone nas configurações do navegador';
+        } else if (error.name === 'NotFoundError') {
+          errorMsg += '\n💡 Solução: Verifique se câmera/microfone estão conectados';
+        }
+        
+        updateResult(3, `❌ ${errorMsg}`, false);
+        log(`Erro nas permissões de mídia: ${error.name} - ${error.message}`, 'error');
+      }
+    }
+
+    // Teste 4: Conexão LiveKit
+    async function testLiveKitConnection() {
+      log('Iniciando teste de conexão LiveKit...');
+      
+      if (!currentToken) {
+        updateResult(4, '❌ Execute primeiro o teste de backend para obter token', false);
+        return;
+      }
+      
+      try {
+        const room = new LivekitClient.Room();
+        log('Room criada');
+        
+        // Configurar eventos para debug
+        room.on(LivekitClient.RoomEvent.Connected, () => {
+          log('Evento: Connected');
+        });
+        
+        room.on(LivekitClient.RoomEvent.Disconnected, () => {
+          log('Evento: Disconnected');
+        });
+        
+        room.on(LivekitClient.RoomEvent.ConnectionStateChanged, (state) => {
+          log(`Evento: ConnectionStateChanged - ${state}`);
+        });
+        
+        log('Tentando conectar ao LiveKit...');
+        await room.connect('http://localhost:7880', currentToken);
+        log('Conexão estabelecida com sucesso!');
+        
+        currentRoom = room;
+        updateResult(4, '✅ Conectado ao LiveKit!', true);
+        document.getElementById('test-video-btn').disabled = false;
+        log('Teste de conexão LiveKit: SUCESSO', 'success');
+        
+      } catch (error) {
+        updateResult(4, `❌ Erro na conexão LiveKit: ${error.message}`, false);
+        log(`Erro na conexão LiveKit: ${error.message}`, 'error');
+        log(`Stack trace: ${error.stack}`, 'error');
+      }
+    }
+
+    // Teste 5: Vídeo completo
+    async function testCompleteVideo() {
+      log('Iniciando teste completo de vídeo...');
+      
+      if (!currentRoom) {
+        updateResult(5, '❌ Execute primeiro o teste de conexão LiveKit', false);
+        return;
+      }
+      
+      try {
+        log('Criando track de vídeo...');
+        const videoTrack = await LivekitClient.createLocalVideoTrack({
+          resolution: LivekitClient.VideoPresets.h540.resolution,
+          facingMode: 'user'
+        });
+        
+        log('Track de vídeo criado');
+        
+        log('Publicando track...');
+        await currentRoom.localParticipant.publishTrack(videoTrack);
+        log('Track publicado');
+        
+        log('Criando elemento de vídeo...');
+        const videoElement = videoTrack.attach();
+        videoElement.style.width = '320px';
+        videoElement.style.border = '3px solid #28a745';
+        videoElement.style.borderRadius = '8px';
+        videoElement.style.margin = '10px';
+        
+        const container = document.getElementById('video-container');
+        container.innerHTML = '<h4>🎥 Seu Vídeo:</h4>';
+        container.appendChild(videoElement);
+        
+        updateResult(5, '✅ Vídeo funcionando perfeitamente!', true);
+        log('Teste completo de vídeo: SUCESSO', 'success');
+        
+      } catch (error) {
+        updateResult(5, `❌ Erro no teste de vídeo: ${error.message}`, false);
+        log(`Erro no teste de vídeo: ${error.message}`, 'error');
+      }
+    }
+
+    // Executa o primeiro teste automaticamente
+    window.onload = function() {
+      log('Página carregada. Iniciando diagnósticos...', 'info');
+      log(`User Agent: ${navigator.userAgent}`);
+      setTimeout(testLibraryLoad, 500); // Pequena pausa para garantir que tudo carregou
+    };
+  </script>
+</body>
+</html>

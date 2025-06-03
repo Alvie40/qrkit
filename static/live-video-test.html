@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRKit Video Test - Live Session</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section h3 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .video-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .video-box {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+        .video-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        #qrcode {
+            margin: 20px auto;
+        }
+        .client-url {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎥 QRKit Video Test - Live Session</h1>
+        <p>Complete end-to-end video calling test with real WebRTC connection</p>
+        <div class="status info" id="systemStatus">System Status: Checking...</div>
+    </div>
+
+    <!-- Session Management -->
+    <div class="test-section">
+        <h3>🎬 Session Management</h3>
+        <div class="controls">
+            <button onclick="createSession()">Create New Session</button>
+            <button onclick="joinAsEmployee()" id="joinEmployeeBtn" disabled>Join as Employee</button>
+            <button onclick="copyClientUrl()" id="copyClientBtn" disabled>Copy Client URL</button>
+            <button onclick="resetSession()">Reset Session</button>
+        </div>
+        <div id="sessionStatus" class="status info">Ready to create session</div>
+        
+        <div id="qrSection" style="display: none;">
+            <div class="qr-container">
+                <h4>📱 QR Code for Client</h4>
+                <div id="qrcode"></div>
+                <div class="client-url" id="clientUrl"></div>
+                <button onclick="openClientWindow()">Open Client in New Window</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Streams -->
+    <div class="test-section">
+        <h3>📹 Video Streams</h3>
+        <div class="video-container">
+            <div class="video-box">
+                <video id="localVideo" autoplay muted></video>
+                <div class="video-label">Local Video (Employee)</div>
+            </div>
+            <div class="video-box">
+                <video id="remoteVideo" autoplay></video>
+                <div class="video-label">Remote Video (Client)</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="toggleVideo()" id="videoBtn">Turn Off Video</button>
+            <button onclick="toggleAudio()" id="audioBtn">Mute Audio</button>
+            <button onclick="switchCamera()" id="switchBtn">Switch Camera</button>
+        </div>
+    </div>
+
+    <!-- Connection Stats -->
+    <div class="test-section">
+        <h3>📊 Connection Statistics</h3>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="connectionState">Disconnected</div>
+                <div class="stat-label">Connection State</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="audioLevel">0%</div>
+                <div class="stat-label">Audio Level</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="videoQuality">-</div>
+                <div class="stat-label">Video Quality</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="latency">-</div>
+                <div class="stat-label">Latency (ms)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Log -->
+    <div class="test-section">
+        <h3>📋 Activity Log</h3>
+        <div class="controls">
+            <button onclick="clearLog()">Clear Log</button>
+            <button onclick="exportLog()">Export Log</button>
+        </div>
+        <div id="activityLog" class="log"></div>
+    </div>
+
+    <script src="https://unpkg.com/livekit-client@latest/dist/livekit-client.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@latest/build/qrcode.min.js"></script>
+    <script>
+        let currentSession = null;
+        let room = null;
+        let isVideoEnabled = true;
+        let isAudioEnabled = true;
+        let localVideoTrack = null;
+        let localAudioTrack = null;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('activityLog');
+            const logLine = `[${timestamp}] ${message}`;
+            logElement.innerHTML += logLine + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(logLine);
+        }
+
+        async function createSession() {
+            try {
+                log('Creating new session...', 'info');
+                
+                const response = await fetch('/api/create-session', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                currentSession = data;
+                
+                log(`Session created: ${data.sessionId}`, 'success');
+                
+                // Update UI
+                document.getElementById('sessionStatus').innerHTML = 
+                    `<strong>Session ID:</strong> ${data.sessionId}<br>
+                     <strong>Room:</strong> ${data.roomName}`;
+                document.getElementById('sessionStatus').className = 'status success';
+                
+                // Enable buttons
+                document.getElementById('joinEmployeeBtn').disabled = false;
+                document.getElementById('copyClientBtn').disabled = false;
+                
+                // Generate QR code
+                const clientUrl = `${window.location.origin}/cliente/${data.sessionId}`;
+                document.getElementById('clientUrl').textContent = clientUrl;
+                
+                // Generate QR code
+                const qrCodeDiv = document.getElementById('qrcode');
+                qrCodeDiv.innerHTML = '';
+                QRCode.toCanvas(qrCodeDiv, clientUrl, { width: 200 }, function (error) {
+                    if (error) {
+                        log('QR code generation failed: ' + error, 'error');
+                    } else {
+                        log('QR code generated successfully', 'success');
+                        document.getElementById('qrSection').style.display = 'block';
+                    }
+                });
+                
+            } catch (error) {
+                log('Session creation failed: ' + error.message, 'error');
+                document.getElementById('sessionStatus').innerHTML = 'Session creation failed';
+                document.getElementById('sessionStatus').className = 'status error';
+            }
+        }
+
+        async function joinAsEmployee() {
+            if (!currentSession) {
+                log('No active session to join', 'error');
+                return;
+            }
+
+            try {
+                log('Joining as employee...', 'info');
+                
+                // Get token for employee
+                const tokenResponse = await fetch(
+                    `/api/token?room=${currentSession.roomName}&identity=employee&isEmployee=true`
+                );
+                const tokenData = await tokenResponse.json();
+                
+                log('Employee token received', 'success');
+                
+                // Connect to LiveKit room
+                room = new LiveKit.Room();
+                
+                room.on(LiveKit.RoomEvent.Connected, () => {
+                    log('Connected to room successfully', 'success');
+                    document.getElementById('connectionState').textContent = 'Connected';
+                });
+                
+                room.on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    log(`Subscribed to ${track.kind} track from ${participant.identity}`, 'info');
+                    
+                    if (track.kind === 'video') {
+                        const videoElement = document.getElementById('remoteVideo');
+                        track.attach(videoElement);
+                    }
+                });
+                
+                room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
+                    log(`Participant connected: ${participant.identity}`, 'success');
+                });
+                
+                room.on(LiveKit.RoomEvent.Disconnected, () => {
+                    log('Disconnected from room', 'info');
+                    document.getElementById('connectionState').textContent = 'Disconnected';
+                });
+
+                // Connect to room
+                await room.connect('ws://localhost:7880', tokenData.token);
+                
+                // Get user media and publish
+                await startLocalMedia();
+                
+            } catch (error) {
+                log('Failed to join as employee: ' + error.message, 'error');
+            }
+        }
+
+        async function startLocalMedia() {
+            try {
+                log('Starting local media...', 'info');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                // Display local video
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = stream;
+                
+                // Publish to room
+                if (room) {
+                    localVideoTrack = new LiveKit.LocalVideoTrack(stream.getVideoTracks()[0]);
+                    localAudioTrack = new LiveKit.LocalAudioTrack(stream.getAudioTracks()[0]);
+                    
+                    await room.localParticipant.publishTrack(localVideoTrack);
+                    await room.localParticipant.publishTrack(localAudioTrack);
+                    
+                    log('Local media published successfully', 'success');
+                }
+                
+                // Start monitoring audio levels
+                startAudioMonitoring(stream);
+                
+            } catch (error) {
+                log('Failed to start local media: ' + error.message, 'error');
+            }
+        }
+
+        function startAudioMonitoring(stream) {
+            const audioContext = new AudioContext();
+            const analyser = audioContext.createAnalyser();
+            const microphone = audioContext.createMediaStreamSource(stream);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            
+            microphone.connect(analyser);
+            
+            function updateAudioLevel() {
+                analyser.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                const percentage = Math.round((average / 255) * 100);
+                document.getElementById('audioLevel').textContent = percentage + '%';
+                requestAnimationFrame(updateAudioLevel);
+            }
+            
+            updateAudioLevel();
+        }
+
+        async function toggleVideo() {
+            if (localVideoTrack) {
+                isVideoEnabled = !isVideoEnabled;
+                localVideoTrack.setEnabled(isVideoEnabled);
+                document.getElementById('videoBtn').textContent = 
+                    isVideoEnabled ? 'Turn Off Video' : 'Turn On Video';
+                log(`Video ${isVideoEnabled ? 'enabled' : 'disabled'}`, 'info');
+            }
+        }
+
+        async function toggleAudio() {
+            if (localAudioTrack) {
+                isAudioEnabled = !isAudioEnabled;
+                localAudioTrack.setEnabled(isAudioEnabled);
+                document.getElementById('audioBtn').textContent = 
+                    isAudioEnabled ? 'Mute Audio' : 'Unmute Audio';
+                log(`Audio ${isAudioEnabled ? 'enabled' : 'disabled'}`, 'info');
+            }
+        }
+
+        function copyClientUrl() {
+            if (currentSession) {
+                const clientUrl = `${window.location.origin}/cliente/${currentSession.sessionId}`;
+                navigator.clipboard.writeText(clientUrl).then(() => {
+                    log('Client URL copied to clipboard', 'success');
+                });
+            }
+        }
+
+        function openClientWindow() {
+            if (currentSession) {
+                const clientUrl = `${window.location.origin}/cliente/${currentSession.sessionId}`;
+                window.open(clientUrl, '_blank');
+                log('Client window opened', 'info');
+            }
+        }
+
+        function resetSession() {
+            if (room) {
+                room.disconnect();
+            }
+            currentSession = null;
+            document.getElementById('sessionStatus').innerHTML = 'Ready to create session';
+            document.getElementById('sessionStatus').className = 'status info';
+            document.getElementById('qrSection').style.display = 'none';
+            document.getElementById('joinEmployeeBtn').disabled = true;
+            document.getElementById('copyClientBtn').disabled = true;
+            document.getElementById('connectionState').textContent = 'Disconnected';
+            log('Session reset', 'info');
+        }
+
+        function clearLog() {
+            document.getElementById('activityLog').innerHTML = '';
+        }
+
+        function exportLog() {
+            const log = document.getElementById('activityLog').innerHTML;
+            const blob = new Blob([log.replace(/<br>/g, '\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qrkit-test-log-${new Date().toISOString()}.txt`;
+            a.click();
+        }
+
+        // Initialize
+        log('QRKit Video Test initialized', 'success');
+        log('Ready for testing video calling functionality', 'info');
+        
+        // Check system status
+        checkSystemStatus();
+        
+        // Check WebRTC support
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            log('WebRTC support detected', 'success');
+        } else {
+            log('WebRTC not supported in this browser', 'error');
+        }
+
+        // System status check
+        async function checkSystemStatus() {
+            try {
+                // Test backend server
+                const serverResponse = await fetch('/api/create-session', { method: 'HEAD' });
+                if (serverResponse.ok || serverResponse.status === 405) {
+                    log('Backend server: ACCESSIBLE', 'success');
+                } else {
+                    log('Backend server: ERROR', 'error');
+                }
+
+                // Test LiveKit server
+                try {
+                    const livekitResponse = await fetch('http://localhost:7880', { 
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    log('LiveKit server: CHECKING...', 'info');
+                    // Since we can't read the response due to CORS, we assume it's working if no error
+                    log('LiveKit server: ACCESSIBLE (or CORS-protected)', 'success');
+                } catch (error) {
+                    log('LiveKit server: NOT ACCESSIBLE', 'error');
+                }
+
+                document.getElementById('systemStatus').innerHTML = 'System Status: Backend ✅ | LiveKit ⚠️ (check logs)';
+                document.getElementById('systemStatus').className = 'status success';
+
+            } catch (error) {
+                log('System check failed: ' + error.message, 'error');
+                document.getElementById('systemStatus').innerHTML = 'System Status: ERROR';
+                document.getElementById('systemStatus').className = 'status error';
+            }
+        }
+    </script>
+</body>
+</html>

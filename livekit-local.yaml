@@ -1,0 +1,18 @@
+port: 7880
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  # Para desenvolvimento local, permite external IP
+  use_external_ip: true
+  # Range de portas para mídia
+  port_range_start: 50000
+  port_range_end: 50100
+
+keys:
+  mykey: mysecret
+
+# Logging para debug
+log_level: debug
+
+# Configurações para desenvolvimento local
+development: true

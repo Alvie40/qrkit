@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Test - QRKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .test-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .test-panel h2 {
+            color: #333;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5em;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #218838;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            margin: 15px 0;
+        }
+        
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 1.1em;
+            background: #f8f9fa;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .status {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .test-results {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .test-results h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .test-item:last-child {
+            border-bottom: none;
+        }
+        
+        .test-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .test-status.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .test-status.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .test-status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-card {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .info-card h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+        
+        .info-card p {
+            color: #333;
+            font-size: 0.9em;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        @media (max-width: 768px) {
+            .test-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .test-panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Complete Test Suite</h1>
+            <p>End-to-end testing for the QRKit video calling system</p>
+        </div>
+        
+        <div class="test-grid">
+            <!-- Employee Simulation -->
+            <div class="test-panel">
+                <h2>👨‍💼 Employee Simulation</h2>
+                
+                <div id="employeeStatus" class="status info">
+                    Ready to start employee simulation
+                </div>
+                
+                <button id="startEmployeeBtn" class="btn">Start Employee Session</button>
+                <button id="employeeVideoBtn" class="btn" disabled>Start Employee Video</button>
+                <button id="stopEmployeeBtn" class="btn danger" disabled>Stop Employee</button>
+                
+                <div class="video-container">
+                    <video id="employeeVideo" class="video-stream" autoplay muted playsinline style="display: none;"></video>
+                    <div id="employeeVideoPlaceholder" class="video-placeholder">
+                        📹 Employee video will appear here
+                    </div>
+                </div>
+                
+                <div id="employeeInfo" class="info-grid" style="display: none;">
+                    <div class="info-card">
+                        <h4>Session ID</h4>
+                        <p id="empSessionId">-</p>
+                    </div>
+                    <div class="info-card">
+                        <h4>Room Name</h4>
+                        <p id="empRoomName">-</p>
+                    </div>
+                </div>
+                
+                <img id="employeeQR" style="max-width: 100%; margin-top: 15px; border-radius: 10px; display: none;" />
+            </div>
+            
+            <!-- Client Simulation -->
+            <div class="test-panel">
+                <h2>👤 Client Simulation</h2>
+                
+                <div id="clientStatus" class="status info">
+                    Waiting for employee to create session
+                </div>
+                
+                <button id="joinClientBtn" class="btn" disabled>Join as Client</button>
+                <button id="clientVideoBtn" class="btn" disabled>Start Client Video</button>
+                <button id="stopClientBtn" class="btn danger" disabled>Stop Client</button>
+                
+                <div class="video-container">
+                    <video id="clientVideo" class="video-stream" autoplay muted playsinline style="display: none;"></video>
+                    <div id="clientVideoPlaceholder" class="video-placeholder">
+                        📱 Client video will appear here
+                    </div>
+                </div>
+                
+                <div class="video-container">
+                    <video id="remoteVideo" class="video-stream" autoplay playsinline style="display: none;"></video>
+                    <div id="remoteVideoPlaceholder" class="video-placeholder">
+                        👨‍💼 Employee video from client perspective
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="test-panel">
+            <h2>📊 Test Results</h2>
+            
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <button class="btn success" onclick="runAutomatedTests()">Run Automated Tests</button>
+                <button class="btn" onclick="resetAllTests()">Reset All Tests</button>
+                <button class="btn" onclick="exportTestResults()">Export Results</button>
+            </div>
+            
+            <div class="test-results">
+                <h3>🔍 System Tests</h3>
+                <div id="systemTests">
+                    <div class="test-item">
+                        <span>Application Server</span>
+                        <span id="appServerTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>LiveKit Server</span>
+                        <span id="livekitServerTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>WebRTC Support</span>
+                        <span id="webrtcSupportTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Camera Access</span>
+                        <span id="cameraAccessTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Microphone Access</span>
+                        <span id="micAccessTest" class="test-status pending">PENDING</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px;">🔗 Integration Tests</h3>
+                <div id="integrationTests">
+                    <div class="test-item">
+                        <span>Session Creation</span>
+                        <span id="sessionCreationTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>QR Code Generation</span>
+                        <span id="qrGenerationTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Token Generation</span>
+                        <span id="tokenGenerationTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Room Connection</span>
+                        <span id="roomConnectionTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Video Publishing</span>
+                        <span id="videoPublishingTest" class="test-status pending">PENDING</span>
+                    </div>
+                    <div class="test-item">
+                        <span>Video Receiving</span>
+                        <span id="videoReceivingTest" class="test-status pending">PENDING</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.4/dist/livekit-client.umd.min.js"></script>
+    <script>
+        const { Room, LocalParticipant, RemoteParticipant, RoomEvent, createLocalVideoTrack, createLocalAudioTrack } = LiveKitClient;
+        
+        let employeeSession = null;
+        let employeeRoom = null;
+        let employeeVideoTrack = null;
+        
+        let clientRoom = null;
+        let clientVideoTrack = null;
+        
+        const elements = {
+            // Employee elements
+            employeeStatus: document.getElementById('employeeStatus'),
+            startEmployeeBtn: document.getElementById('startEmployeeBtn'),
+            employeeVideoBtn: document.getElementById('employeeVideoBtn'),
+            stopEmployeeBtn: document.getElementById('stopEmployeeBtn'),
+            employeeVideo: document.getElementById('employeeVideo'),
+            employeeVideoPlaceholder: document.getElementById('employeeVideoPlaceholder'),
+            employeeInfo: document.getElementById('employeeInfo'),
+            empSessionId: document.getElementById('empSessionId'),
+            empRoomName: document.getElementById('empRoomName'),
+            employeeQR: document.getElementById('employeeQR'),
+            
+            // Client elements
+            clientStatus: document.getElementById('clientStatus'),
+            joinClientBtn: document.getElementById('joinClientBtn'),
+            clientVideoBtn: document.getElementById('clientVideoBtn'),
+            stopClientBtn: document.getElementById('stopClientBtn'),
+            clientVideo: document.getElementById('clientVideo'),
+            clientVideoPlaceholder: document.getElementById('clientVideoPlaceholder'),
+            remoteVideo: document.getElementById('remoteVideo'),
+            remoteVideoPlaceholder: document.getElementById('remoteVideoPlaceholder')
+        };
+        
+        function updateStatus(element, message, type = 'info') {
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        function updateTestStatus(testId, status) {
+            const element = document.getElementById(testId);
+            element.textContent = status.toUpperCase();
+            element.className = `test-status ${status}`;
+        }
+        
+        // Employee Functions
+        elements.startEmployeeBtn.addEventListener('click', async () => {
+            try {
+                updateStatus(elements.employeeStatus, 'Creating employee session...', 'info');
+                elements.startEmployeeBtn.disabled = true;
+                
+                const response = await fetch('/api/create-session', { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to create session');
+                
+                employeeSession = await response.json();
+                
+                // Update UI
+                elements.empSessionId.textContent = employeeSession.sessionId;
+                elements.empRoomName.textContent = employeeSession.roomName;
+                elements.employeeInfo.style.display = 'grid';
+                
+                // Show QR code
+                elements.employeeQR.src = `/api/qr/${employeeSession.sessionId}`;
+                elements.employeeQR.style.display = 'block';
+                
+                updateStatus(elements.employeeStatus, 'Session created! QR code generated.', 'success');
+                updateStatus(elements.clientStatus, 'Employee session ready. You can join now.', 'success');
+                
+                elements.employeeVideoBtn.disabled = false;
+                elements.joinClientBtn.disabled = false;
+                updateTestStatus('sessionCreationTest', 'pass');
+                updateTestStatus('qrGenerationTest', 'pass');
+                
+            } catch (error) {
+                updateStatus(elements.employeeStatus, `Error: ${error.message}`, 'error');
+                elements.startEmployeeBtn.disabled = false;
+                updateTestStatus('sessionCreationTest', 'fail');
+            }
+        });
+        
+        elements.employeeVideoBtn.addEventListener('click', async () => {
+            try {
+                updateStatus(elements.employeeStatus, 'Starting employee video...', 'info');
+                elements.employeeVideoBtn.disabled = true;
+                
+                // Get camera access
+                employeeVideoTrack = await createLocalVideoTrack({
+                    resolution: { width: 1280, height: 720 }
+                });
+                
+                // Display local video
+                employeeVideoTrack.attach(elements.employeeVideo);
+                elements.employeeVideo.style.display = 'block';
+                elements.employeeVideoPlaceholder.style.display = 'none';
+                
+                // Get token and connect to room
+                const tokenResponse = await fetch(`/api/token?room=${employeeSession.roomName}&identity=employee`);
+                if (!tokenResponse.ok) throw new Error('Failed to get token');
+                
+                const tokenData = await tokenResponse.json();
+                updateTestStatus('tokenGenerationTest', 'pass');
+                
+                employeeRoom = new Room();
+                
+                employeeRoom.on(RoomEvent.ParticipantConnected, (participant) => {
+                    updateStatus(elements.employeeStatus, `Client connected: ${participant.identity}`, 'success');
+                });
+                
+                await employeeRoom.connect('ws://localhost:7880', tokenData.token);
+                updateTestStatus('roomConnectionTest', 'pass');
+                
+                await employeeRoom.localParticipant.publishTrack(employeeVideoTrack);
+                updateTestStatus('videoPublishingTest', 'pass');
+                
+                updateStatus(elements.employeeStatus, 'Employee video started! Waiting for client...', 'success');
+                elements.stopEmployeeBtn.disabled = false;
+                elements.clientVideoBtn.disabled = false;
+                
+            } catch (error) {
+                updateStatus(elements.employeeStatus, `Error: ${error.message}`, 'error');
+                elements.employeeVideoBtn.disabled = false;
+                updateTestStatus('videoPublishingTest', 'fail');
+            }
+        });
+        
+        elements.stopEmployeeBtn.addEventListener('click', () => {
+            if (employeeRoom) {
+                employeeRoom.disconnect();
+                employeeRoom = null;
+            }
+            
+            if (employeeVideoTrack) {
+                employeeVideoTrack.stop();
+                employeeVideoTrack = null;
+            }
+            
+            elements.employeeVideo.style.display = 'none';
+            elements.employeeVideoPlaceholder.style.display = 'flex';
+            elements.employeeInfo.style.display = 'none';
+            elements.employeeQR.style.display = 'none';
+            
+            updateStatus(elements.employeeStatus, 'Employee session stopped', 'info');
+            elements.startEmployeeBtn.disabled = false;
+            elements.employeeVideoBtn.disabled = true;
+            elements.stopEmployeeBtn.disabled = true;
+            elements.joinClientBtn.disabled = true;
+            elements.clientVideoBtn.disabled = true;
+        });
+        
+        // Client Functions
+        elements.joinClientBtn.addEventListener('click', async () => {
+            try {
+                updateStatus(elements.clientStatus, 'Joining as client...', 'info');
+                elements.joinClientBtn.disabled = true;
+                
+                // Get token for client
+                const tokenResponse = await fetch(`/api/token?room=${employeeSession.roomName}&identity=client-${employeeSession.sessionId}`);
+                if (!tokenResponse.ok) throw new Error('Failed to get client token');
+                
+                const tokenData = await tokenResponse.json();
+                
+                clientRoom = new Room();
+                
+                clientRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    if (track.kind === 'video') {
+                        track.attach(elements.remoteVideo);
+                        elements.remoteVideo.style.display = 'block';
+                        elements.remoteVideoPlaceholder.style.display = 'none';
+                        updateTestStatus('videoReceivingTest', 'pass');
+                    }
+                });
+                
+                await clientRoom.connect('ws://localhost:7880', tokenData.token);
+                
+                updateStatus(elements.clientStatus, 'Connected as client!', 'success');
+                elements.clientVideoBtn.disabled = false;
+                elements.stopClientBtn.disabled = false;
+                
+            } catch (error) {
+                updateStatus(elements.clientStatus, `Error: ${error.message}`, 'error');
+                elements.joinClientBtn.disabled = false;
+            }
+        });
+        
+        elements.clientVideoBtn.addEventListener('click', async () => {
+            try {
+                updateStatus(elements.clientStatus, 'Starting client video...', 'info');
+                
+                clientVideoTrack = await createLocalVideoTrack({
+                    resolution: { width: 1280, height: 720 }
+                });
+                
+                clientVideoTrack.attach(elements.clientVideo);
+                elements.clientVideo.style.display = 'block';
+                elements.clientVideoPlaceholder.style.display = 'none';
+                
+                await clientRoom.localParticipant.publishTrack(clientVideoTrack);
+                
+                updateStatus(elements.clientStatus, 'Client video started!', 'success');
+                
+            } catch (error) {
+                updateStatus(elements.clientStatus, `Error: ${error.message}`, 'error');
+            }
+        });
+        
+        elements.stopClientBtn.addEventListener('click', () => {
+            if (clientRoom) {
+                clientRoom.disconnect();
+                clientRoom = null;
+            }
+            
+            if (clientVideoTrack) {
+                clientVideoTrack.stop();
+                clientVideoTrack = null;
+            }
+            
+            elements.clientVideo.style.display = 'none';
+            elements.clientVideoPlaceholder.style.display = 'flex';
+            elements.remoteVideo.style.display = 'none';
+            elements.remoteVideoPlaceholder.style.display = 'flex';
+            
+            updateStatus(elements.clientStatus, 'Client disconnected', 'info');
+            elements.joinClientBtn.disabled = false;
+            elements.clientVideoBtn.disabled = true;
+            elements.stopClientBtn.disabled = true;
+        });
+        
+        // Automated Tests
+        async function runAutomatedTests() {
+            console.log('Running automated tests...');
+            
+            // Reset all test statuses
+            const testIds = [
+                'appServerTest', 'livekitServerTest', 'webrtcSupportTest', 
+                'cameraAccessTest', 'micAccessTest', 'sessionCreationTest',
+                'qrGenerationTest', 'tokenGenerationTest', 'roomConnectionTest',
+                'videoPublishingTest', 'videoReceivingTest'
+            ];
+            
+            testIds.forEach(id => updateTestStatus(id, 'pending'));
+            
+            // Test application server
+            try {
+                const response = await fetch('/');
+                updateTestStatus('appServerTest', response.ok ? 'pass' : 'fail');
+            } catch (error) {
+                updateTestStatus('appServerTest', 'fail');
+            }
+            
+            // Test LiveKit server
+            try {
+                const response = await fetch('http://localhost:7880');
+                updateTestStatus('livekitServerTest', response.ok ? 'pass' : 'fail');
+            } catch (error) {
+                updateTestStatus('livekitServerTest', 'fail');
+            }
+            
+            // Test WebRTC support
+            const webrtcSupport = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            updateTestStatus('webrtcSupportTest', webrtcSupport ? 'pass' : 'fail');
+            
+            // Test camera access
+            try {
+                const videoTrack = await createLocalVideoTrack();
+                videoTrack.stop();
+                updateTestStatus('cameraAccessTest', 'pass');
+            } catch (error) {
+                updateTestStatus('cameraAccessTest', 'fail');
+            }
+            
+            // Test microphone access
+            try {
+                const audioTrack = await createLocalAudioTrack();
+                audioTrack.stop();
+                updateTestStatus('micAccessTest', 'pass');
+            } catch (error) {
+                updateTestStatus('micAccessTest', 'fail');
+            }
+        }
+        
+        function resetAllTests() {
+            // Stop all connections
+            elements.stopEmployeeBtn.click();
+            elements.stopClientBtn.click();
+            
+            // Reset test statuses
+            const testIds = [
+                'appServerTest', 'livekitServerTest', 'webrtcSupportTest', 
+                'cameraAccessTest', 'micAccessTest', 'sessionCreationTest',
+                'qrGenerationTest', 'tokenGenerationTest', 'roomConnectionTest',
+                'videoPublishingTest', 'videoReceivingTest'
+            ];
+            
+            testIds.forEach(id => updateTestStatus(id, 'pending'));
+        }
+        
+        function exportTestResults() {
+            const results = {};
+            const testIds = [
+                'appServerTest', 'livekitServerTest', 'webrtcSupportTest', 
+                'cameraAccessTest', 'micAccessTest', 'sessionCreationTest',
+                'qrGenerationTest', 'tokenGenerationTest', 'roomConnectionTest',
+                'videoPublishingTest', 'videoReceivingTest'
+            ];
+            
+            testIds.forEach(id => {
+                const element = document.getElementById(id);
+                results[id] = element.textContent.toLowerCase();
+            });
+            
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                testResults: results,
+                browserInfo: {
+                    userAgent: navigator.userAgent,
+                    webrtcSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qrkit-test-results-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Initialize
+        runAutomatedTests();
+    </script>
+</body>
+</html>

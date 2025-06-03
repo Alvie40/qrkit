@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug & Testing - QRKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .debug-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .debug-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #218838;
+        }
+        
+        .btn.warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .btn.warning:hover {
+            background: #e0a800;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.online {
+            background: #28a745;
+        }
+        
+        .status-indicator.offline {
+            background: #dc3545;
+        }
+        
+        .status-indicator.unknown {
+            background: #6c757d;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .info-box p {
+            color: #333;
+            margin: 5px 0;
+        }
+        
+        .test-result {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 5px 0;
+            font-weight: 500;
+        }
+        
+        .test-result.pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .test-result.fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .test-result.pending {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Debug & Testing Interface</h1>
+            <p>Comprehensive testing and debugging tools for QRKit video calling</p>
+        </div>
+        
+        <div class="debug-grid">
+            <!-- System Status -->
+            <div class="debug-section">
+                <h2>🖥️ System Status</h2>
+                <div class="info-box">
+                    <h4>Service Health</h4>
+                    <p><span id="appStatus" class="status-indicator unknown"></span>Application Server</p>
+                    <p><span id="livekitStatus" class="status-indicator unknown"></span>LiveKit Server</p>
+                    <p><span id="webrtcStatus" class="status-indicator unknown"></span>WebRTC Support</p>
+                </div>
+                <button class="btn" onclick="checkSystemStatus()">Check System Status</button>
+                <button class="btn warning" onclick="checkPermissions()">Check Camera/Mic Permissions</button>
+                <div id="systemOutput" class="output" style="display: none;"></div>
+            </div>
+            
+            <!-- Connection Tests -->
+            <div class="debug-section">
+                <h2>🌐 Connection Tests</h2>
+                <button class="btn" onclick="testApplicationAPI()">Test Application API</button>
+                <button class="btn" onclick="testLiveKitConnection()">Test LiveKit Connection</button>
+                <button class="btn" onclick="testTokenGeneration()">Test Token Generation</button>
+                <button class="btn success" onclick="runFullConnectivityTest()">Run Full Connectivity Test</button>
+                <div id="connectionOutput" class="output" style="display: none;"></div>
+            </div>
+            
+            <!-- Video Tests -->
+            <div class="debug-section">
+                <h2>📹 Video & Audio Tests</h2>
+                <button class="btn" onclick="testCameraAccess()">Test Camera Access</button>
+                <button class="btn" onclick="testMicrophoneAccess()">Test Microphone Access</button>
+                <button class="btn" onclick="testVideoPublishing()">Test Video Publishing</button>
+                <button class="btn danger" onclick="stopAllTests()">Stop All Tests</button>
+                <div id="videoOutput" class="output" style="display: none;"></div>
+                <video id="testVideo" style="width: 100%; border-radius: 8px; margin-top: 10px; display: none;" autoplay muted playsinline></video>
+            </div>
+            
+            <!-- Session Management -->
+            <div class="debug-section">
+                <h2>⚙️ Session Management</h2>
+                <button class="btn" onclick="createTestSession()">Create Test Session</button>
+                <button class="btn" onclick="generateTestQR()">Generate Test QR Code</button>
+                <button class="btn" onclick="simulateClientJoin()">Simulate Client Join</button>
+                <button class="btn warning" onclick="clearAllSessions()">Clear All Sessions</button>
+                <div id="sessionOutput" class="output" style="display: none;"></div>
+                <img id="testQRCode" style="max-width: 100%; margin-top: 10px; display: none; border-radius: 8px;" />
+            </div>
+            
+            <!-- Live Testing -->
+            <div class="debug-section">
+                <h2>🧪 Live Testing</h2>
+                <div class="info-box">
+                    <h4>Test Results</h4>
+                    <div id="testResults">
+                        <div class="test-result pending">🔄 Ready to run tests</div>
+                    </div>
+                </div>
+                <button class="btn success" onclick="runComprehensiveTest()">Run Comprehensive Test</button>
+                <button class="btn" onclick="openEmployeeInterface()">Open Employee Interface</button>
+                <button class="btn" onclick="openTestClientInterface()">Open Test Client Interface</button>
+            </div>
+            
+            <!-- Logs & Debug Info -->
+            <div class="debug-section">
+                <h2>📊 Logs & Debug Info</h2>
+                <button class="btn" onclick="showLogs()">Show Application Logs</button>
+                <button class="btn" onclick="showBrowserInfo()">Show Browser Info</button>
+                <button class="btn" onclick="exportDebugInfo()">Export Debug Info</button>
+                <button class="btn danger" onclick="clearLogs()">Clear Logs</button>
+                <div id="logsOutput" class="output" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.4/dist/livekit-client.umd.min.js"></script>
+    <script>
+        const { Room, LocalParticipant, RemoteParticipant, RoomEvent, createLocalVideoTrack, createLocalAudioTrack } = LiveKitClient;
+        
+        let testRoom = null;
+        let testVideoTrack = null;
+        let testAudioTrack = null;
+        let logs = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push({ timestamp, message, type });
+            console.log(logEntry);
+        }
+        
+        function updateOutput(elementId, content, show = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = content;
+            if (show) element.style.display = 'block';
+        }
+        
+        function updateStatus(statusId, online) {
+            const element = document.getElementById(statusId);
+            element.className = `status-indicator ${online ? 'online' : 'offline'}`;
+        }
+        
+        function addTestResult(message, passed) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.textContent = `${passed ? '✅' : '❌'} ${message}`;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function clearTestResults() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<div class="test-result pending">🔄 Running tests...</div>';
+        }
+        
+        async function checkSystemStatus() {
+            log('Checking system status...');
+            updateOutput('systemOutput', 'Checking system status...\n');
+            
+            // Check application server
+            try {
+                const response = await fetch('/');
+                updateStatus('appStatus', response.ok);
+                log(`Application server: ${response.ok ? 'Online' : 'Offline'}`);
+            } catch (error) {
+                updateStatus('appStatus', false);
+                log(`Application server: Error - ${error.message}`, 'error');
+            }
+            
+            // Check LiveKit server
+            try {
+                const response = await fetch('http://localhost:7880');
+                updateStatus('livekitStatus', response.ok);
+                log(`LiveKit server: ${response.ok ? 'Online' : 'Offline'}`);
+            } catch (error) {
+                updateStatus('livekitStatus', false);
+                log(`LiveKit server: Error - ${error.message}`, 'error');
+            }
+            
+            // Check WebRTC support
+            const webrtcSupport = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            updateStatus('webrtcStatus', webrtcSupport);
+            log(`WebRTC support: ${webrtcSupport ? 'Available' : 'Not available'}`);
+            
+            updateOutput('systemOutput', logs.slice(-10).map(l => `[${l.timestamp}] ${l.message}`).join('\n'));
+        }
+        
+        async function checkPermissions() {
+            log('Checking camera and microphone permissions...');
+            
+            try {
+                const permissions = await Promise.all([
+                    navigator.permissions.query({ name: 'camera' }),
+                    navigator.permissions.query({ name: 'microphone' })
+                ]);
+                
+                const cameraState = permissions[0].state;
+                const micState = permissions[1].state;
+                
+                log(`Camera permission: ${cameraState}`);
+                log(`Microphone permission: ${micState}`);
+                
+                updateOutput('systemOutput', logs.slice(-5).map(l => `[${l.timestamp}] ${l.message}`).join('\n'));
+                
+            } catch (error) {
+                log(`Permission check error: ${error.message}`, 'error');
+                updateOutput('systemOutput', `Error checking permissions: ${error.message}`);
+            }
+        }
+        
+        async function testApplicationAPI() {
+            log('Testing application API endpoints...');
+            updateOutput('connectionOutput', 'Testing API endpoints...\n');
+            
+            const endpoints = [
+                { url: '/api/create-session', method: 'POST' },
+                { url: '/api/token?room=test&identity=test', method: 'GET' }
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url, { method: endpoint.method });
+                    const success = response.ok;
+                    log(`${endpoint.method} ${endpoint.url}: ${success ? 'Success' : 'Failed'} (${response.status})`);
+                } catch (error) {
+                    log(`${endpoint.method} ${endpoint.url}: Error - ${error.message}`, 'error');
+                }
+            }
+            
+            updateOutput('connectionOutput', logs.slice(-5).map(l => `[${l.timestamp}] ${l.message}`).join('\n'));
+        }
+        
+        async function testLiveKitConnection() {
+            log('Testing LiveKit WebSocket connection...');
+            updateOutput('connectionOutput', 'Testing LiveKit connection...\n');
+            
+            try {
+                // Get a test token
+                const tokenResponse = await fetch('/api/token?room=test-room&identity=test-user');
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to get token');
+                }
+                const tokenData = await tokenResponse.json();
+                log('Token generated successfully');
+                
+                // Test WebSocket connection
+                const testRoom = new Room();
+                await testRoom.connect('ws://localhost:7880', tokenData.token);
+                log('LiveKit connection successful');
+                testRoom.disconnect();
+                log('LiveKit disconnection successful');
+                
+            } catch (error) {
+                log(`LiveKit connection error: ${error.message}`, 'error');
+            }
+            
+            updateOutput('connectionOutput', logs.slice(-5).map(l => `[${l.timestamp}] ${l.message}`).join('\n'));
+        }
+        
+        async function testTokenGeneration() {
+            log('Testing token generation...');
+            
+            try {
+                const response = await fetch('/api/token?room=debug-room&identity=debug-user');
+                if (response.ok) {
+                    const data = await response.json();
+                    log('Token generation successful');
+                    log(`Token length: ${data.token.length} characters`);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                log(`Token generation error: ${error.message}`, 'error');
+            }
+            
+            updateOutput('connectionOutput', logs.slice(-3).map(l => `[${l.timestamp}] ${l.message}`).join('\n'));
+        }
+        
+        async function testCameraAccess() {
+            log('Testing camera access...');
+            
+            try {
+                testVideoTrack = await createLocalVideoTrack({
+                    resolution: { width: 640, height: 480 }
+                });
+                
+                const videoElement = document.getElementById('testVideo');
+                testVideoTrack.attach(videoElement);
+                videoElement.style.display = 'block';
+                
+                log('Camera access successful');
+                updateOutput('videoOutput', 'Camera test successful. Video should appear below.');
+                
+            } catch (error) {
+                log(`Camera access error: ${error.message}`, 'error');
+                updateOutput('videoOutput', `Camera test failed: ${error.message}`);
+            }
+        }
+        
+        async function testMicrophoneAccess() {
+            log('Testing microphone access...');
+            
+            try {
+                testAudioTrack = await createLocalAudioTrack();
+                log('Microphone access successful');
+                updateOutput('videoOutput', 'Microphone test successful.');
+                
+            } catch (error) {
+                log(`Microphone access error: ${error.message}`, 'error');
+                updateOutput('videoOutput', `Microphone test failed: ${error.message}`);
+            }
+        }
+        
+        async function testVideoPublishing() {
+            log('Testing video publishing to LiveKit...');
+            
+            try {
+                if (!testVideoTrack) {
+                    await testCameraAccess();
+                }
+                
+                // Get token and connect
+                const tokenResponse = await fetch('/api/token?room=test-publish&identity=test-publisher');
+                const tokenData = await tokenResponse.json();
+                
+                testRoom = new Room();
+                await testRoom.connect('ws://localhost:7880', tokenData.token);
+                
+                // Publish video track
+                await testRoom.localParticipant.publishTrack(testVideoTrack);
+                log('Video publishing successful');
+                
+                updateOutput('videoOutput', 'Video publishing test successful.');
+                
+            } catch (error) {
+                log(`Video publishing error: ${error.message}`, 'error');
+                updateOutput('videoOutput', `Video publishing failed: ${error.message}`);
+            }
+        }
+        
+        async function stopAllTests() {
+            log('Stopping all tests...');
+            
+            if (testVideoTrack) {
+                testVideoTrack.stop();
+                testVideoTrack = null;
+            }
+            
+            if (testAudioTrack) {
+                testAudioTrack.stop();
+                testAudioTrack = null;
+            }
+            
+            if (testRoom) {
+                testRoom.disconnect();
+                testRoom = null;
+            }
+            
+            document.getElementById('testVideo').style.display = 'none';
+            log('All tests stopped');
+            updateOutput('videoOutput', 'All tests stopped.');
+        }
+        
+        async function createTestSession() {
+            log('Creating test session...');
+            
+            try {
+                const response = await fetch('/api/create-session', { method: 'POST' });
+                const session = await response.json();
+                
+                log(`Test session created: ${session.sessionId}`);
+                updateOutput('sessionOutput', `Session ID: ${session.sessionId}\nRoom: ${session.roomName}\nClient URL: ${session.clientUrl}`);
+                
+            } catch (error) {
+                log(`Session creation error: ${error.message}`, 'error');
+                updateOutput('sessionOutput', `Session creation failed: ${error.message}`);
+            }
+        }
+        
+        async function generateTestQR() {
+            log('Generating test QR code...');
+            
+            try {
+                // Create session first
+                const sessionResponse = await fetch('/api/create-session', { method: 'POST' });
+                const session = await sessionResponse.json();
+                
+                // Generate QR code
+                const qrImage = document.getElementById('testQRCode');
+                qrImage.src = `/api/qr/${session.sessionId}`;
+                qrImage.style.display = 'block';
+                
+                log('Test QR code generated');
+                updateOutput('sessionOutput', `QR code generated for session: ${session.sessionId}`);
+                
+            } catch (error) {
+                log(`QR generation error: ${error.message}`, 'error');
+                updateOutput('sessionOutput', `QR generation failed: ${error.message}`);
+            }
+        }
+        
+        async function runComprehensiveTest() {
+            clearTestResults();
+            log('Running comprehensive test suite...');
+            
+            const tests = [
+                { name: 'Application Server', func: () => fetch('/') },
+                { name: 'LiveKit Server', func: () => fetch('http://localhost:7880') },
+                { name: 'Token Generation', func: () => fetch('/api/token?room=test&identity=test') },
+                { name: 'Session Creation', func: () => fetch('/api/create-session', { method: 'POST' }) },
+                { name: 'Camera Access', func: () => createLocalVideoTrack() },
+                { name: 'Microphone Access', func: () => createLocalAudioTrack() }
+            ];
+            
+            for (const test of tests) {
+                try {
+                    await test.func();
+                    addTestResult(test.name, true);
+                    log(`✅ ${test.name}: Passed`);
+                } catch (error) {
+                    addTestResult(test.name, false);
+                    log(`❌ ${test.name}: Failed - ${error.message}`, 'error');
+                }
+            }
+            
+            log('Comprehensive test completed');
+        }
+        
+        function runFullConnectivityTest() {
+            Promise.all([
+                testApplicationAPI(),
+                testLiveKitConnection(),
+                testTokenGeneration()
+            ]).then(() => {
+                log('Full connectivity test completed');
+            });
+        }
+        
+        function simulateClientJoin() {
+            log('Simulating client join...');
+            updateOutput('sessionOutput', 'This would simulate a client joining a session.\nIn a real scenario, open the client interface in another browser tab.');
+        }
+        
+        function clearAllSessions() {
+            log('Clearing all sessions...');
+            updateOutput('sessionOutput', 'Sessions cleared (simulated)');
+        }
+        
+        function openEmployeeInterface() {
+            window.open('/empregado', '_blank');
+            log('Opened employee interface in new tab');
+        }
+        
+        function openTestClientInterface() {
+            // Create a test session first, then open client interface
+            fetch('/api/create-session', { method: 'POST' })
+                .then(response => response.json())
+                .then(session => {
+                    window.open(`/cliente/${session.sessionId}`, '_blank');
+                    log('Opened test client interface in new tab');
+                });
+        }
+        
+        function showLogs() {
+            const logsText = logs.map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\n');
+            updateOutput('logsOutput', logsText || 'No logs available');
+        }
+        
+        function showBrowserInfo() {
+            const info = {
+                userAgent: navigator.userAgent,
+                webrtcSupport: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                screen: `${screen.width}x${screen.height}`,
+                viewport: `${window.innerWidth}x${window.innerHeight}`,
+                cookiesEnabled: navigator.cookieEnabled,
+                language: navigator.language
+            };
+            
+            const infoText = Object.entries(info).map(([key, value]) => `${key}: ${value}`).join('\n');
+            updateOutput('logsOutput', infoText);
+        }
+        
+        function exportDebugInfo() {
+            const debugData = {
+                timestamp: new Date().toISOString(),
+                logs: logs,
+                browserInfo: {
+                    userAgent: navigator.userAgent,
+                    webrtcSupport: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                    screen: `${screen.width}x${screen.height}`,
+                    viewport: `${window.innerWidth}x${window.innerHeight}`
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `qrkit-debug-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('Debug info exported');
+        }
+        
+        function clearLogs() {
+            logs = [];
+            updateOutput('logsOutput', 'Logs cleared');
+            log('Logs cleared');
+        }
+        
+        // Initialize
+        log('Debug interface loaded');
+        checkSystemStatus();
+    </script>
+</body>
+</html>

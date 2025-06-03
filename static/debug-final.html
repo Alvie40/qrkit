@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Diagnóstico WebRTC Definitivo</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        .test-container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin: 20px 0; 
+        }
+        .status { 
+            font-weight: bold; 
+            margin: 10px 0; 
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #0056b3; }
+        #log { 
+            background: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            padding: 15px; 
+            border-radius: 6px; 
+            font-family: monospace; 
+            font-size: 12px; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            white-space: pre-wrap; 
+        }
+        .step { 
+            border-left: 3px solid #007bff; 
+            padding-left: 15px; 
+            margin: 15px 0; 
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Diagnóstico WebRTC Definitivo</h1>
+    <p>Testando especificamente o problema de conexão WebRTC com LiveKit.</p>
+
+    <div class="test-container">
+        <h2>🎯 Teste Focado na Conexão</h2>
+        <button onclick="testarConexaoFocada()">🚀 Testar Agora</button>
+        <button onclick="limparLog()">🧹 Limpar Log</button>
+        <div id="status-geral" class="status">Aguardando teste...</div>
+        <div id="log"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📹 Vídeo Local</h2>
+        <button onclick="testarVideoLocal()">📷 Testar Câmera</button>
+        <div id="video-container">
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        const statusGeral = document.getElementById('status-geral');
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const typeIcon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            log.textContent += `[${timestamp}] ${typeIcon} ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function limparLog() {
+            log.textContent = '';
+            statusGeral.textContent = 'Log limpo. Pronto para novo teste.';
+            statusGeral.className = 'status info';
+        }
+
+        async function testarVideoLocal() {
+            try {
+                addLog('Testando acesso à câmera local...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                const video = document.getElementById('localVideo');
+                video.srcObject = stream;
+                addLog('✅ Câmera local funcionando!', 'success');
+                
+                // Parar stream após 10 segundos
+                setTimeout(() => {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    addLog('Câmera local parada.', 'info');
+                }, 10000);
+                
+            } catch (error) {
+                addLog(`❌ Erro na câmera: ${error.message}`, 'error');
+            }
+        }
+
+        async function testarConexaoFocada() {
+            statusGeral.textContent = 'Executando teste focado...';
+            statusGeral.className = 'status warning';
+            
+            addLog('🚀 Iniciando teste focado de WebRTC...');
+            
+            try {
+                // Passo 1: Carregar SDK
+                addLog('Passo 1: Verificando LiveKit SDK...');
+                if (typeof LivekitClient === 'undefined') {
+                    addLog('❌ LiveKit SDK não carregado', 'error');
+                    return;
+                }
+                addLog('✅ LiveKit SDK carregado', 'success');
+
+                // Passo 2: Configurações WebRTC específicas
+                addLog('Passo 2: Configurando WebRTC para localhost...');
+                const roomOptions = {
+                    publishDefaults: {
+                        videoSimulcastLayers: [{ quality: 'low' }]
+                    },
+                    adaptiveStream: false,
+                    dynacast: false,
+                    // CONFIGURAÇÃO CRÍTICA: ICE servers para localhost
+                    rtcConfig: {
+                        iceServers: [
+                            // SEM servidores STUN externos - apenas localhost
+                        ],
+                        iceTransportPolicy: 'all',
+                        bundlePolicy: 'max-bundle',
+                        iceCandidatePoolSize: 0
+                    }
+                };
+
+                const room = new LivekitClient.Room(roomOptions);
+                addLog('✅ Room criada com configuração localhost', 'success');
+
+                // Passo 3: Event listeners detalhados
+                room.on('connected', () => {
+                    addLog('🎉 SUCESSO: Conectado ao LiveKit!', 'success');
+                    statusGeral.textContent = '✅ Conexão bem-sucedida!';
+                    statusGeral.className = 'status success';
+                });
+
+                room.on('disconnected', (reason) => {
+                    addLog(`❌ Desconectado: ${reason}`, 'error');
+                });
+
+                room.on('connectionStateChanged', (state) => {
+                    addLog(`🔄 Estado da conexão: ${state}`, 'info');
+                });
+
+                room.on('participantConnected', (participant) => {
+                    addLog(`👤 Participante conectado: ${participant.identity}`, 'success');
+                });
+
+                room.on('trackSubscribed', (track, publication, participant) => {
+                    addLog(`📹 Track recebido: ${track.kind} de ${participant.identity}`, 'success');
+                });
+
+                // Passo 4: Solicitar token
+                addLog('Passo 3: Solicitando token JWT...');
+                const tokenResponse = await fetch('/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room: 'teste-webrtc',
+                        identity: 'debug-user-' + Date.now()
+                    })
+                });
+
+                if (!tokenResponse.ok) {
+                    throw new Error(`Erro no token: ${tokenResponse.status}`);
+                }
+
+                const tokenData = await tokenResponse.json();
+                addLog('✅ Token JWT recebido', 'success');
+
+                // Passo 5: Conectar com timeout
+                addLog('Passo 4: Conectando ao LiveKit (timeout 30s)...');
+                
+                const connectPromise = room.connect('ws://localhost:7880', tokenData.token);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout de 30s')), 30000)
+                );
+
+                await Promise.race([connectPromise, timeoutPromise]);
+
+            } catch (error) {
+                addLog(`❌ ERRO: ${error.message}`, 'error');
+                statusGeral.textContent = `❌ Falha: ${error.message}`;
+                statusGeral.className = 'status error';
+                
+                // Diagnóstico adicional
+                if (error.message.includes('pc connection')) {
+                    addLog('🔍 DIAGNÓSTICO: Problema WebRTC detectado', 'warning');
+                    addLog('💡 SOLUÇÃO: Verificar configuração de rede Docker', 'warning');
+                }
+            }
+        }
+    </script>
+
+    <!-- LiveKit SDK com fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.7.0/dist/livekit-client.umd.min.js"></script>
+    <script>
+        if (typeof LivekitClient === 'undefined') {
+            console.log('Fallback: Carregando LiveKit SDK do unpkg...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/livekit-client@2.7.0/dist/livekit-client.umd.min.js';
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>

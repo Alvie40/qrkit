@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Teste Rápido WebRTC</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin: 10px;
+        }
+        button:hover { background: #005ED3; }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #cce7ff; color: #004085; }
+        video {
+            width: 300px;
+            height: 200px;
+            border-radius: 8px;
+            background: #000;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Teste Rápido WebRTC</h1>
+        <p>Este teste verifica se conseguimos estabelecer conexão básica entre browser e LiveKit.</p>
+        
+        <div id="status" class="status info">
+            Pronto para testar
+        </div>
+        
+        <button onclick="startQuickTest()">🚀 Iniciar Teste Rápido</button>
+        <button onclick="testCamera()">📹 Testar Câmera</button>
+        
+        <div id="videos" style="margin-top: 20px;">
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        
+        <div id="details" style="text-align: left; font-family: monospace; font-size: 12px; margin-top: 20px; background: #f0f0f0; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+
+    <!-- LiveKit SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.0.7/dist/livekit-client.umd.min.js"></script>
+    <script>
+        let room = null;
+        let localVideo = null;
+
+        function log(message, type = 'info') {
+            console.log(message);
+            const details = document.getElementById('details');
+            const timestamp = new Date().toLocaleTimeString();
+            details.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            details.scrollTop = details.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        async function testCamera() {
+            try {
+                updateStatus('📹 Testando acesso à câmera...', 'warning');
+                log('🔄 Solicitando acesso à câmera e microfone...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+                
+                localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = stream;
+                
+                updateStatus('✅ Câmera funcionando!', 'success');
+                log(`✅ Stream obtido: ${stream.getVideoTracks().length} vídeo, ${stream.getAudioTracks().length} áudio`);
+                
+                return stream;
+            } catch (error) {
+                updateStatus(`❌ Erro na câmera: ${error.message}`, 'error');
+                log(`❌ Erro ao acessar mídia: ${error.message}`);
+                return null;
+            }
+        }
+
+        async function startQuickTest() {
+            try {
+                updateStatus('🔄 Iniciando teste...', 'warning');
+                
+                // 1. Verificar SDK
+                if (typeof LiveKit === 'undefined') {
+                    throw new Error('LiveKit SDK não carregado');
+                }
+                log('✅ LiveKit SDK carregado');
+
+                // 2. Testar câmera
+                const stream = await testCamera();
+                if (!stream) {
+                    throw new Error('Falha no acesso à câmera');
+                }
+
+                // 3. Obter token
+                log('🔄 Obtendo token JWT...');
+                const response = await fetch('/token?room=quick-test&identity=test-user');
+                const data = await response.json();
+                if (!data.token) {
+                    throw new Error('Falha na geração do token');
+                }
+                log('✅ Token JWT obtido');
+
+                // 4. Criar room com configuração simplificada
+                log('🔄 Criando conexão LiveKit...');
+                room = new LiveKit.Room({
+                    // Configuração mais permissiva para desenvolvimento
+                    adaptiveStream: false,
+                    dynacast: false,
+                    publishDefaults: {
+                        simulcast: false,
+                    }
+                });
+
+                // Eventos de conexão
+                room.on(LiveKit.RoomEvent.Connected, () => {
+                    log('✅ SUCESSO: Conectado ao LiveKit!');
+                    updateStatus('🎉 Conexão WebRTC estabelecida com sucesso!', 'success');
+                });
+
+                room.on(LiveKit.RoomEvent.Disconnected, (reason) => {
+                    log(`⚠️ Desconectado: ${reason}`);
+                    updateStatus(`⚠️ Desconectado: ${reason}`, 'warning');
+                });
+
+                room.on(LiveKit.RoomEvent.ConnectionError, (error) => {
+                    log(`❌ ERRO DE CONEXÃO: ${error.message}`);
+                    updateStatus(`❌ Falha WebRTC: ${error.message}`, 'error');
+                });
+
+                room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
+                    log(`👥 Participante conectado: ${participant.identity}`);
+                });
+
+                // 5. Tentar conectar
+                log('🔗 Conectando ao LiveKit server...');
+                await room.connect('ws://localhost:7880', data.token);
+
+                // 6. Publicar stream de vídeo
+                log('📹 Publicando vídeo...');
+                await room.localParticipant.publishTrack(
+                    LiveKit.LocalVideoTrack.createCameraTrack()
+                );
+                log('✅ Vídeo publicado!');
+
+                updateStatus('🎉 Teste completo! WebRTC funcionando.', 'success');
+
+            } catch (error) {
+                log(`❌ ERRO: ${error.message}`);
+                updateStatus(`❌ Falha: ${error.message}`, 'error');
+                
+                // Log detalhes do erro
+                if (error.stack) {
+                    log(`Stack: ${error.stack}`);
+                }
+            }
+        }
+
+        // Limpar ao sair
+        window.addEventListener('beforeunload', () => {
+            if (room) {
+                room.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>

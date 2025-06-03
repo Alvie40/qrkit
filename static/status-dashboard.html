@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRKit - Real-time Status Dashboard</title>
+    <script src="https://unpkg.com/livekit-client/dist/livekit-client.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .status-value {
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #117a8b;
+            transform: translateY(-2px);
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4757;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .real-time-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+        }
+
+        .log-time {
+            color: #6c757d;
+        }
+
+        .log-success {
+            color: #28a745;
+        }
+
+        .log-error {
+            color: #dc3545;
+        }
+
+        .log-warning {
+            color: #ffc107;
+        }
+
+        .log-info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>
+                <span class="live-indicator"></span>
+                QRKit Real-time Status Dashboard
+            </h1>
+            <p>Monitoramento em tempo real de todas as funcionalidades do sistema</p>
+        </div>
+
+        <div class="status-grid">
+            <!-- Server Status -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">🖥️</span>
+                    <span class="card-title">Server Status</span>
+                </div>
+                <div id="server-status">
+                    <div class="status-item">
+                        <span class="status-label">HTTP Server</span>
+                        <span class="status-value status-info" id="http-status">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">API Endpoints</span>
+                        <span class="status-value status-info" id="api-status">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Static Files</span>
+                        <span class="status-value status-info" id="static-status">Checking...</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <a href="/" class="btn btn-primary" target="_blank">🏠 Home</a>
+                    <button class="btn btn-info" onclick="checkServerStatus()">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <!-- WebRTC Status -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">📹</span>
+                    <span class="card-title">WebRTC Status</span>
+                </div>
+                <div id="webrtc-status">
+                    <div class="status-item">
+                        <span class="status-label">Browser Support</span>
+                        <span class="status-value status-info" id="browser-support">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Camera Access</span>
+                        <span class="status-value status-info" id="camera-status">Not tested</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Microphone Access</span>
+                        <span class="status-value status-info" id="mic-status">Not tested</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="testCamera()">📹 Test Camera</button>
+                    <button class="btn btn-success" onclick="testMicrophone()">🎤 Test Mic</button>
+                </div>
+            </div>
+
+            <!-- LiveKit Status -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">🚀</span>
+                    <span class="card-title">LiveKit Status</span>
+                </div>
+                <div id="livekit-status">
+                    <div class="status-item">
+                        <span class="status-label">Client Library</span>
+                        <span class="status-value status-info" id="livekit-lib">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Token Generation</span>
+                        <span class="status-value status-info" id="token-status">Checking...</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Server Connection</span>
+                        <span class="status-value status-info" id="livekit-connection">Not tested</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="testLiveKit()">🧪 Test Connection</button>
+                    <button class="btn btn-info" onclick="generateTestToken()">🎫 Test Token</button>
+                </div>
+            </div>
+
+            <!-- Session Management -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">🔗</span>
+                    <span class="card-title">Session Management</span>
+                </div>
+                <div id="session-status">
+                    <div class="status-item">
+                        <span class="status-label">Active Sessions</span>
+                        <span class="status-value status-info" id="active-sessions">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">QR Generation</span>
+                        <span class="status-value status-info" id="qr-status">Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Last Session</span>
+                        <span class="status-value status-info" id="last-session">None</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="createTestSession()">➕ Create Session</button>
+                    <a href="/empregado" class="btn btn-primary" target="_blank">👨‍💼 Employee UI</a>
+                </div>
+            </div>
+
+            <!-- System Metrics -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">📊</span>
+                    <span class="card-title">System Metrics</span>
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="uptime">--</div>
+                        <div class="metric-label">Uptime</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="requests">0</div>
+                        <div class="metric-label">Requests</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="response-time">--</div>
+                        <div class="metric-label">Avg Response</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="errors">0</div>
+                        <div class="metric-label">Errors</div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <a href="/debug" class="btn btn-info" target="_blank">🔧 Debug Tools</a>
+                    <a href="/comprehensive-test" class="btn btn-primary" target="_blank">🧪 Full Tests</a>
+                </div>
+            </div>
+
+            <!-- Real-time Activity Log -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-icon">📋</span>
+                    <span class="card-title">Real-time Activity Log</span>
+                </div>
+                <div class="real-time-log" id="activity-log">
+                    <div class="log-entry log-info">
+                        <span class="log-time">[Starting]</span> Dashboard initialized
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-info" onclick="clearLog()">🗑️ Clear Log</button>
+                    <button class="btn btn-success" onclick="runFullDiagnostic()">🔍 Full Diagnostic</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let metrics = {
+            requests: 0,
+            errors: 0,
+            startTime: Date.now(),
+            responseTimes: []
+        };
+
+        let activeSessions = new Set();
+        let lastSessionId = null;
+
+        // Logging functions
+        function addLogEntry(message, type = 'info') {
+            const log = document.getElementById('activity-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span class="log-time">[${timestamp}]</span> ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            
+            // Keep only last 50 entries
+            while (log.children.length > 50) {
+                log.removeChild(log.firstChild);
+            }
+        }
+
+        // Status update functions
+        function updateStatus(elementId, status, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = status;
+                element.className = `status-value status-${type}`;
+            }
+        }
+
+        function updateMetric(metricId, value) {
+            const element = document.getElementById(metricId);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        // Server status checks
+        async function checkServerStatus() {
+            addLogEntry('Checking server status...', 'info');
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('/');
+                const responseTime = Date.now() - startTime;
+                
+                metrics.requests++;
+                metrics.responseTimes.push(responseTime);
+                
+                if (response.ok) {
+                    updateStatus('http-status', 'Online', 'online');
+                    addLogEntry('HTTP server is online', 'success');
+                } else {
+                    updateStatus('http-status', 'Error', 'offline');
+                    addLogEntry(`HTTP server error: ${response.status}`, 'error');
+                    metrics.errors++;
+                }
+                
+                // Update metrics
+                updateMetric('requests', metrics.requests);
+                updateMetric('errors', metrics.errors);
+                
+                const avgResponseTime = metrics.responseTimes.reduce((a, b) => a + b, 0) / metrics.responseTimes.length;
+                updateMetric('response-time', `${Math.round(avgResponseTime)}ms`);
+                
+            } catch (error) {
+                updateStatus('http-status', 'Offline', 'offline');
+                addLogEntry(`Server connection failed: ${error.message}`, 'error');
+                metrics.errors++;
+            }
+            
+            // Check API endpoints
+            await checkAPIStatus();
+            
+            // Check static files
+            await checkStaticFiles();
+        }
+
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch('/api/create-session', { method: 'POST' });
+                if (response.ok) {
+                    updateStatus('api-status', 'Working', 'online');
+                    addLogEntry('API endpoints are working', 'success');
+                } else {
+                    updateStatus('api-status', 'Error', 'offline');
+                    addLogEntry(`API error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('api-status', 'Failed', 'offline');
+                addLogEntry(`API check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkStaticFiles() {
+            try {
+                const response = await fetch('/static/comprehensive-test.html');
+                if (response.ok) {
+                    updateStatus('static-status', 'Available', 'online');
+                    addLogEntry('Static files are accessible', 'success');
+                } else {
+                    updateStatus('static-status', 'Error', 'offline');
+                    addLogEntry(`Static files error: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('static-status', 'Failed', 'offline');
+                addLogEntry(`Static files check failed: ${error.message}`, 'error');
+            }
+        }
+
+        // WebRTC checks
+        function checkWebRTCSupport() {
+            addLogEntry('Checking WebRTC support...', 'info');
+            
+            const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            const hasRTCPeerConnection = !!window.RTCPeerConnection;
+            
+            if (hasMediaDevices && hasRTCPeerConnection) {
+                updateStatus('browser-support', 'Full Support', 'online');
+                addLogEntry('Browser has full WebRTC support', 'success');
+            } else {
+                updateStatus('browser-support', 'Limited', 'warning');
+                addLogEntry('Browser has limited WebRTC support', 'warning');
+            }
+        }
+
+        async function testCamera() {
+            addLogEntry('Testing camera access...', 'info');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                updateStatus('camera-status', 'Available', 'online');
+                addLogEntry('Camera access granted', 'success');
+                
+                // Stop the stream
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                updateStatus('camera-status', 'Denied', 'offline');
+                addLogEntry(`Camera access denied: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMicrophone() {
+            addLogEntry('Testing microphone access...', 'info');
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                updateStatus('mic-status', 'Available', 'online');
+                addLogEntry('Microphone access granted', 'success');
+                
+                // Stop the stream
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                updateStatus('mic-status', 'Denied', 'offline');
+                addLogEntry(`Microphone access denied: ${error.message}`, 'error');
+            }
+        }
+
+        // LiveKit checks
+        function checkLiveKitLibrary() {
+            if (window.LiveKit) {
+                updateStatus('livekit-lib', 'Loaded', 'online');
+                addLogEntry('LiveKit client library loaded', 'success');
+            } else {
+                updateStatus('livekit-lib', 'Missing', 'offline');
+                addLogEntry('LiveKit client library not found', 'error');
+            }
+        }
+
+        async function generateTestToken() {
+            addLogEntry('Testing token generation...', 'info');
+            
+            try {
+                const response = await fetch('/api/token?room=test-room&identity=test-user');
+                if (response.ok) {
+                    updateStatus('token-status', 'Working', 'online');
+                    addLogEntry('Token generation is working', 'success');
+                } else {
+                    updateStatus('token-status', 'Failed', 'offline');
+                    addLogEntry(`Token generation failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                updateStatus('token-status', 'Error', 'offline');
+                addLogEntry(`Token generation error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLiveKit() {
+            if (!window.LiveKit) {
+                addLogEntry('LiveKit library not available', 'error');
+                return;
+            }
+            
+            addLogEntry('Testing LiveKit connection...', 'info');
+            
+            try {
+                // Generate token first
+                const tokenResponse = await fetch('/api/token?room=test-room&identity=test-user');
+                if (!tokenResponse.ok) {
+                    throw new Error('Token generation failed');
+                }
+                
+                const tokenData = await tokenResponse.json();
+                
+                // Try to connect
+                const room = new LiveKit.Room();
+                
+                const connectPromise = new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Connection timeout'));
+                    }, 10000);
+                    
+                    room.on(LiveKit.RoomEvent.Connected, () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    });
+                    
+                    room.on(LiveKit.RoomEvent.ConnectionError, (error) => {
+                        clearTimeout(timeout);
+                        reject(error);
+                    });
+                });
+                
+                await room.connect('ws://localhost:7880', tokenData.token);
+                await connectPromise;
+                
+                updateStatus('livekit-connection', 'Connected', 'online');
+                addLogEntry('LiveKit connection successful', 'success');
+                
+                // Disconnect
+                room.disconnect();
+                
+            } catch (error) {
+                updateStatus('livekit-connection', 'Failed', 'offline');
+                addLogEntry(`LiveKit connection failed: ${error.message}`, 'warning');
+            }
+        }
+
+        // Session management
+        async function createTestSession() {
+            addLogEntry('Creating test session...', 'info');
+            
+            try {
+                const response = await fetch('/api/create-session', { method: 'POST' });
+                if (response.ok) {
+                    const data = await response.json();
+                    activeSessions.add(data.sessionId);
+                    lastSessionId = data.sessionId;
+                    
+                    updateMetric('active-sessions', activeSessions.size);
+                    updateStatus('last-session', data.sessionId, 'info');
+                    
+                    addLogEntry(`Session created: ${data.sessionId}`, 'success');
+                    addLogEntry(`Room: ${data.roomName}`, 'info');
+                } else {
+                    addLogEntry(`Session creation failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addLogEntry(`Session creation error: ${error.message}`, 'error');
+            }
+        }
+
+        // Utility functions
+        function clearLog() {
+            const log = document.getElementById('activity-log');
+            log.innerHTML = '<div class="log-entry log-info"><span class="log-time">[Cleared]</span> Log cleared by user</div>';
+        }
+
+        async function runFullDiagnostic() {
+            addLogEntry('Starting full diagnostic...', 'info');
+            
+            await checkServerStatus();
+            checkWebRTCSupport();
+            checkLiveKitLibrary();
+            await generateTestToken();
+            await createTestSession();
+            
+            addLogEntry('Full diagnostic completed', 'success');
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const uptime = Date.now() - metrics.startTime;
+            const minutes = Math.floor(uptime / 60000);
+            const seconds = Math.floor((uptime % 60000) / 1000);
+            updateMetric('uptime', `${minutes}m ${seconds}s`);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            addLogEntry('Real-time dashboard initialized', 'success');
+            
+            // Initial checks
+            checkServerStatus();
+            checkWebRTCSupport();
+            checkLiveKitLibrary();
+            
+            // Set up periodic updates
+            setInterval(updateUptime, 1000);
+            setInterval(checkServerStatus, 30000); // Check every 30 seconds
+            
+            addLogEntry('Automatic monitoring started', 'info');
+        });
+    </script>
+</body>
+</html>

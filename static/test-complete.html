@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRKit - Teste Completo</title>
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.4/dist/livekit-client.umd.min.js"></script>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      background-color: #f5f5f5; 
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #f9f9f9;
+    }
+    .success { border-color: #28a745; background: #d4edda; }
+    .error { border-color: #dc3545; background: #f8d7da; }
+    .warning { border-color: #ffc107; background: #fff3cd; }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled { background: #6c757d; cursor: not-allowed; }
+    #log {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 QRKit - Teste Completo de Conectividade</h1>
+    
+    <div class="test-section" id="basic-tests">
+      <h3>1. Testes Básicos</h3>
+      <button onclick="testBasicConnectivity()">Testar Conectividade Básica</button>
+      <button onclick="testLiveKitSDK()">Testar LiveKit SDK</button>
+      <div id="basic-results"></div>
+    </div>
+
+    <div class="test-section" id="webrtc-tests">
+      <h3>2. Testes WebRTC</h3>
+      <button onclick="testMediaDevices()">Testar Câmera/Microfone</button>
+      <button onclick="testSTUNConnectivity()">Testar STUN Servers</button>
+      <div id="webrtc-results"></div>
+    </div>
+
+    <div class="test-section" id="livekit-tests">
+      <h3>3. Testes LiveKit</h3>
+      <button onclick="testLiveKitConnection()">Testar Conexão LiveKit</button>
+      <button onclick="testTokenGeneration()">Testar Geração de Token</button>
+      <div id="livekit-results"></div>
+    </div>
+
+    <div class="test-section" id="full-test">
+      <h3>4. Teste Completo</h3>
+      <button onclick="runFullTest()" style="background: #28a745;">🚀 Executar Teste Completo</button>
+      <div id="full-results"></div>
+    </div>
+
+    <div class="test-section">
+      <h3>📝 Log de Testes</h3>
+      <div id="log"></div>
+      <button onclick="clearLog()" style="background: #6c757d;">Limpar Log</button>
+    </div>
+  </div>
+
+  <script>
+    const livekitHost = window.location.protocol + '//' + window.location.hostname + ':7880';
+    
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      document.getElementById('log').textContent += `[${timestamp}] ${message}\n`;
+      document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+      console.log(message);
+    }
+
+    function clearLog() {
+      document.getElementById('log').textContent = '';
+    }
+
+    function showResult(elementId, message, type = 'success') {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="${type}">${message}</div>`;
+    }
+
+    async function testBasicConnectivity() {
+      log('Iniciando teste de conectividade básica...');
+      try {
+        const response = await fetch('/');
+        if (response.ok) {
+          log('✅ Servidor QRKit acessível');
+          showResult('basic-results', '✅ Servidor QRKit OK', 'success');
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        log(`❌ Erro na conectividade básica: ${error.message}`);
+        showResult('basic-results', `❌ Erro: ${error.message}`, 'error');
+      }
+    }
+
+    async function testLiveKitSDK() {
+      log('Testando carregamento do LiveKit SDK...');
+      if (typeof LivekitClient !== 'undefined') {
+        log('✅ LiveKit SDK carregado com sucesso');
+        log(`Versão: ${LivekitClient.version || 'Desconhecida'}`);
+        showResult('basic-results', '✅ LiveKit SDK OK', 'success');
+      } else {
+        log('❌ LiveKit SDK não carregou');
+        showResult('basic-results', '❌ LiveKit SDK não carregado', 'error');
+      }
+    }
+
+    async function testMediaDevices() {
+      log('Testando acesso a dispositivos de mídia...');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true 
+        });
+        log('✅ Acesso à câmera e microfone concedido');
+        log(`Tracks de vídeo: ${stream.getVideoTracks().length}`);
+        log(`Tracks de áudio: ${stream.getAudioTracks().length}`);
+        
+        // Para o stream
+        stream.getTracks().forEach(track => track.stop());
+        showResult('webrtc-results', '✅ Câmera/Microfone OK', 'success');
+      } catch (error) {
+        log(`❌ Erro no acesso à mídia: ${error.name} - ${error.message}`);
+        showResult('webrtc-results', `❌ Mídia: ${error.name}`, 'error');
+      }
+    }
+
+    async function testSTUNConnectivity() {
+      log('Testando conectividade STUN...');
+      try {
+        const pc = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        });
+
+        return new Promise((resolve) => {
+          let resolved = false;
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              log('⚠️ Timeout na conexão STUN');
+              showResult('webrtc-results', '⚠️ STUN timeout', 'warning');
+              resolve();
+            }
+          }, 5000);
+
+          pc.onicecandidate = (event) => {
+            if (event.candidate && !resolved) {
+              resolved = true;
+              clearTimeout(timeout);
+              log(`✅ Candidato ICE obtido: ${event.candidate.candidate}`);
+              showResult('webrtc-results', '✅ STUN OK', 'success');
+              pc.close();
+              resolve();
+            }
+          };
+
+          pc.createDataChannel('test');
+          pc.createOffer().then(offer => pc.setLocalDescription(offer));
+        });
+      } catch (error) {
+        log(`❌ Erro no teste STUN: ${error.message}`);
+        showResult('webrtc-results', `❌ STUN: ${error.message}`, 'error');
+      }
+    }
+
+    async function testLiveKitConnection() {
+      log('Testando conexão com LiveKit server...');
+      try {
+        const response = await fetch(livekitHost);
+        if (response.ok) {
+          const text = await response.text();
+          log(`✅ LiveKit server respondeu: ${text}`);
+          showResult('livekit-results', '✅ LiveKit Server OK', 'success');
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        log(`❌ Erro na conexão LiveKit: ${error.message}`);
+        showResult('livekit-results', `❌ LiveKit: ${error.message}`, 'error');
+      }
+    }
+
+    async function testTokenGeneration() {
+      log('Testando geração de token...');
+      try {
+        const response = await fetch(`/token?room=test-room&identity=test-user`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.token) {
+            log('✅ Token gerado com sucesso');
+            log(`Token (primeiros 50 chars): ${data.token.substring(0, 50)}...`);
+            showResult('livekit-results', '✅ Token OK', 'success');
+          } else {
+            throw new Error('Token não encontrado na resposta');
+          }
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        log(`❌ Erro na geração de token: ${error.message}`);
+        showResult('livekit-results', `❌ Token: ${error.message}`, 'error');
+      }
+    }
+
+    async function runFullTest() {
+      log('🚀 Iniciando teste completo...');
+      showResult('full-results', '⏳ Executando testes...', 'warning');
+      
+      const tests = [
+        testBasicConnectivity,
+        testLiveKitSDK,
+        testMediaDevices,
+        testSTUNConnectivity,
+        testLiveKitConnection,
+        testTokenGeneration
+      ];
+
+      let passed = 0;
+      let failed = 0;
+
+      for (const test of tests) {
+        try {
+          await test();
+          passed++;
+        } catch (error) {
+          failed++;
+          log(`❌ Teste falhou: ${error.message}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      const total = passed + failed;
+      const percentage = Math.round((passed / total) * 100);
+      
+      if (percentage >= 80) {
+        log(`🎉 Teste completo finalizado: ${passed}/${total} (${percentage}%) - SUCESSO`);
+        showResult('full-results', `🎉 ${passed}/${total} testes passaram (${percentage}%)`, 'success');
+      } else {
+        log(`⚠️ Teste completo finalizado: ${passed}/${total} (${percentage}%) - PROBLEMAS DETECTADOS`);
+        showResult('full-results', `⚠️ ${passed}/${total} testes passaram (${percentage}%)`, 'warning');
+      }
+    }
+
+    // Testa automaticamente quando a página carrega
+    window.onload = () => {
+      log('Página carregada. Pronto para testes.');
+      testBasicConnectivity();
+      testLiveKitSDK();
+    };
+  </script>
+</body>
+</html>

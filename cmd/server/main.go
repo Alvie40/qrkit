@@ -3,70 +3,188 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/livekit/protocol/auth"
 	"github.com/skip2/go-qrcode"
 )
 
-var lastRoom string
+var sessions = make(map[string]string) // sessionId -> roomName
 
 func main() {
-	http.HandleFunc("/", serveQRPage)             // página principal
-	http.HandleFunc("/generate", generateQR)      // rota que gera o QR Code
-	http.HandleFunc("/video", serveVideo)         // exibe a sala da videoconferência
-	http.HandleFunc("/last-room", serveLastRoom)  // novo endpoint para última sala
-	http.HandleFunc("/empregado", serveEmpregado) // página do empregado
-	http.HandleFunc("/medico", serveMedico)       // página do médico
+	// Main routes
+	http.HandleFunc("/", serveHomePage)
+	http.HandleFunc("/empregado", serveEmployeePage)
+	http.HandleFunc("/cliente/", serveClientPage)
+	http.HandleFunc("/debug", serveDebugPage)
+	http.HandleFunc("/test", serveTestPage)
+	http.HandleFunc("/comprehensive-test", serveComprehensiveTestPage)
+	http.HandleFunc("/status", serveStatusDashboard)
+	http.HandleFunc("/live-video-test", serveLiveVideoTest)
 
-	// servir arquivos estáticos se necessário
+	// API routes
+	http.HandleFunc("/api/create-session", createSession)
+	http.HandleFunc("/api/token", generateToken)
+	http.HandleFunc("/api/qr/", generateQRCode)
+
+	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	// inicia servidor
-	http.ListenAndServe(":8080", nil)
+	log.Println("Server starting on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func serveQRPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "static/qrcode.html")
+func serveHomePage(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	tmpl := `<!DOCTYPE html>
+<html>
+<head>
+    <title>QRKit Video Calling</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        .nav-links { list-style: none; padding: 0; }
+        .nav-links li { margin: 15px 0; }
+        .nav-links a { display: block; padding: 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; text-align: center; }
+        .nav-links a:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QRKit Video Calling System</h1>        <ul class="nav-links">
+            <li><a href="/empregado">👨‍💼 Employee Interface</a></li>
+            <li><a href="/live-video-test">🎥 Live Video Test</a></li>
+            <li><a href="/status">📊 Real-time Status Dashboard</a></li>
+            <li><a href="/debug">🔧 Debug & Testing</a></li>
+            <li><a href="/test">🧪 Complete Test Page</a></li>
+            <li><a href="/comprehensive-test">🚀 Comprehensive Testing Suite</a></li>
+        </ul>
+    </div>
+</body>
+</html>`
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(tmpl))
 }
 
-func generateQR(w http.ResponseWriter, r *http.Request) {
-	// cria um nome de sala aleatório
-	room := fmt.Sprintf("sala-%d", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(99999))
-	link := fmt.Sprintf("http://localhost:8080/video?room=%s", room)
+func serveEmployeePage(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
+	tmpl.Execute(w, nil)
+}
 
-	// gera QR code com o link
-	png, _ := qrcode.Encode(link, qrcode.Medium, 256)
+func serveClientPage(w http.ResponseWriter, r *http.Request) {
+	sessionId := r.URL.Path[len("/cliente/"):]
+	if sessionId == "" {
+		http.Error(w, "Session ID required", http.StatusBadRequest)
+		return
+	}
+
+	tmpl := template.Must(template.ParseFiles("templates/cliente.html"))
+	tmpl.Execute(w, map[string]string{
+		"SessionId": sessionId,
+	})
+}
+
+func serveDebugPage(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("templates/debug.html"))
+	tmpl.Execute(w, nil)
+}
+
+func serveTestPage(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("templates/test.html"))
+	tmpl.Execute(w, nil)
+}
+
+func serveComprehensiveTestPage(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/comprehensive-test.html")
+}
+
+func serveStatusDashboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/status-dashboard.html")
+}
+
+func serveLiveVideoTest(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "static/live-video-test.html")
+}
+
+func createSession(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	sessionId := fmt.Sprintf("session-%d", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(999999))
+	roomName := fmt.Sprintf("room-%d", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(999999))
+
+	sessions[sessionId] = roomName
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "http://localhost:8080/cliente/%s"}`, sessionId, roomName, sessionId)
+}
+
+func generateQRCode(w http.ResponseWriter, r *http.Request) {
+	sessionId := r.URL.Path[len("/api/qr/"):]
+	if sessionId == "" {
+		http.Error(w, "Session ID required", http.StatusBadRequest)
+		return
+	}
+
+	clientUrl := fmt.Sprintf("http://localhost:8080/cliente/%s", sessionId)
+
+	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
+	if err != nil {
+		http.Error(w, "Error generating QR code", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "image/png")
 	w.Write(png)
 }
 
-func serveVideo(w http.ResponseWriter, r *http.Request) {
+func generateToken(w http.ResponseWriter, r *http.Request) {
 	room := r.URL.Query().Get("room")
-	if room != "" {
-		lastRoom = room
-	}
-	tmpl := template.Must(template.ParseFiles("templates/video.html"))
-	tmpl.Execute(w, map[string]string{"Room": room})
-}
+	identity := r.URL.Query().Get("identity")
 
-func serveLastRoom(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"room": "%s"}`, lastRoom)
-}
-
-func serveEmpregado(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "static/empregado.html")
-}
-
-func serveMedico(w http.ResponseWriter, r *http.Request) {
-	room := r.URL.Query().Get("room")
-	if room == "" {
-		// Se não há sala, mostra página de espera
-		http.ServeFile(w, r, "static/medico.html")
+	if room == "" || identity == "" {
+		http.Error(w, "room and identity parameters required", http.StatusBadRequest)
 		return
 	}
-	tmpl := template.Must(template.ParseFiles("templates/video.html"))
-	tmpl.Execute(w, map[string]string{"Room": room})
+
+	apiKey := os.Getenv("LIVEKIT_API_KEY")
+	apiSecret := os.Getenv("LIVEKIT_API_SECRET")
+
+	if apiKey == "" {
+		apiKey = "devkey"
+	}
+	if apiSecret == "" {
+		apiSecret = "secret"
+	}
+
+	at := auth.NewAccessToken(apiKey, apiSecret)
+	grant := &auth.VideoGrant{
+		RoomJoin: true,
+		Room:     room,
+	}
+	at.AddGrant(grant).SetIdentity(identity)
+
+	token, err := at.ToJWT()
+	if err != nil {
+		log.Printf("Error generating token: %v", err)
+		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"token": "%s"}`, token)
 }

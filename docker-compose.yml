@@ -5,19 +5,24 @@ services:
     build: .
     ports:
       - "8080:8080"
+    volumes:
+      - ./static:/app/static
+      - ./templates:/app/templates
     environment:
       - LIVEKIT_API_KEY=mykey
       - LIVEKIT_API_SECRET=mysecret
-      - LIVEKIT_HOST=livekit:7880
+      - LIVEKIT_HOST=localhost:7880
     depends_on:
       - livekit
 
   livekit:
     image: livekit/livekit-server
-    command: --dev
+    command: --config /livekit.yaml
     ports:
       - "7880:7880"
       - "7881:7881/udp"
+      - "50000-50100:50000-50100/udp"
+    volumes:
+      - ./livekit-local.yaml:/livekit.yaml
     environment:
       - "LIVEKIT_KEYS=mykey: mysecret"
-      - LIVEKIT_HOST=0.0.0.0

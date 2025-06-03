@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste LiveKit Básico</title>
+  <!-- Múltiplas fontes do LiveKit para garantir carregamento -->
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.4/dist/livekit-client.umd.min.js"></script>
+  <script>
+    // Fallback se o primeiro CDN falhar
+    if (typeof LivekitClient === 'undefined') {
+      document.write('<script src="https://unpkg.com/livekit-client@2.5.4/dist/livekit-client.umd.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <h1>🧪 Teste LiveKit Básico</h1>
+  <div id="status">Carregando...</div>
+  <div id="debug"></div>
+  <button id="test-btn">Testar Conexão LiveKit</button>
+  <div id="video-area"></div>
+
+  <script>
+    const debug = document.getElementById('debug');
+    const status = document.getElementById('status');
+    
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      debug.innerHTML += `[${timestamp}] ${message}<br>`;
+      console.log(message);
+    }
+    
+    // Aguarda um pouco para garantir que todos os scripts carregaram
+    setTimeout(() => {
+      // Verificações iniciais
+      log(`LivekitClient carregado: ${typeof LivekitClient !== 'undefined'}`);
+      
+      if (typeof LivekitClient === 'undefined') {
+        log('❌ PROBLEMA: LiveKit Client SDK não carregou!');
+        log('Tentando carregar manualmente...');
+        
+        // Tentativa manual de carregamento
+        const script = document.createElement('script');
+        script.src = 'https://cdn.skypack.dev/livekit-client@2.5.4';
+        script.onload = () => {
+          log('✅ LiveKit carregado via Skypack!');
+          checkLiveKitAgain();
+        };
+        script.onerror = () => {
+          log('❌ Falha ao carregar via Skypack também');
+          showCDNTroubleshooting();
+        };
+        document.head.appendChild(script);
+      } else {
+        checkLiveKitCapabilities();
+      }
+    }, 1000);
+    
+    function checkLiveKitAgain() {
+      if (typeof LivekitClient !== 'undefined') {
+        log(`✅ LiveKit agora disponível!`);
+        checkLiveKitCapabilities();
+      } else {
+        log('❌ LiveKit ainda não disponível');
+        showCDNTroubleshooting();
+      }
+    }
+    
+    function checkLiveKitCapabilities() {
+      if (typeof LivekitClient.Room !== 'undefined') {
+        log(`✅ LivekitClient.Room disponível`);
+      }
+      if (typeof LivekitClient.createLocalVideoTrack !== 'undefined') {
+        log(`✅ LivekitClient.createLocalVideoTrack disponível`);
+      }
+      status.textContent = 'Pronto para teste';
+    }
+    
+    function showCDNTroubleshooting() {
+      status.textContent = '❌ Erro: LiveKit SDK não carregou';
+      log('🔧 SOLUÇÕES POSSÍVEIS:');
+      log('1. Verificar conexão com internet');
+      log('2. Desabilitar bloqueadores de anúncio/script');
+      log('3. Tentar em modo incógnito');
+      log('4. Verificar se empresa bloqueia CDNs externos');
+      
+      // Adiciona botão para tentar recarregar
+      const reloadBtn = document.createElement('button');
+      reloadBtn.textContent = '🔄 Recarregar Página';
+      reloadBtn.style.background = '#dc3545';
+      reloadBtn.style.marginTop = '10px';
+      reloadBtn.onclick = () => location.reload();
+      document.body.appendChild(reloadBtn);
+    }
+    
+    document.getElementById('test-btn').onclick = async () => {
+      try {
+        log('Iniciando teste...');
+        status.textContent = 'Testando...';
+        
+        // Log WebRTC debug info
+        log('📡 UserAgent: ' + navigator.userAgent);
+        const rtcPeerConn = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+        log('📡 RTCPeerConnection disponível: ' + (rtcPeerConn ? '✅' : '❌'));
+        
+        // Verificação prévia
+        if (typeof LivekitClient === 'undefined') {
+          throw new Error('LiveKit Client SDK não está carregado. Verifique sua conexão com internet ou bloqueadores de script.');
+        }
+        
+        // Teste 1: Verificar se consegue criar room
+        log('Teste 1: Criando Room...');
+        const room = new LivekitClient.Room();
+        log('✅ Room criada com sucesso');
+        
+        // Teste 2: Verificar se consegue pegar token
+        log('Teste 2: Solicitando token...');
+        const resp = await fetch('/token?room=test&identity=test-user');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        log('✅ Token recebido');
+        
+        // Teste 3: Tentar conectar
+        log('Teste 3: Conectando ao LiveKit...');
+        await room.connect('http://localhost:7880', data.token);
+        log('✅ Conectado ao LiveKit!');
+        
+        // Teste 4: Verificar permissões de mídia
+        log('Teste 4: Testando permissões de mídia...');
+        const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+        log('✅ Permissões de mídia OK');
+        
+        // Teste 5: Criar video track
+        log('Teste 5: Criando video track...');
+        const videoTrack = await LivekitClient.createLocalVideoTrack();
+        log('✅ Video track criado');
+        
+        // Teste 6: Exibir vídeo
+        log('Teste 6: Exibindo vídeo...');
+        const videoElement = videoTrack.attach();
+        videoElement.style.width = '320px';
+        videoElement.style.border = '2px solid green';
+        document.getElementById('video-area').appendChild(videoElement);
+        log('✅ Vídeo exibido!');
+        
+        status.textContent = '✅ Todos os testes passaram!';
+        
+      } catch (error) {
+        log(`❌ Erro: ${error.name} - ${error.message}`);
+        status.textContent = `❌ Falha no teste: ${error.message}`;
+        
+        // Diagnóstico específico
+        if (error.message.includes('LiveKit Client SDK')) {
+          log('🔧 SOLUÇÃO: Problema de carregamento do SDK');
+          log('   - Verifique sua conexão com internet');
+          log('   - Desabilite bloqueadores de anúncio');
+          log('   - Tente em modo incógnito');
+        }
+      }
+    };
+  </script>
+</body>
+</html>

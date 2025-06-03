@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRKit - Test Status</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-links {
+            margin: 20px 0;
+        }
+        .test-links a {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .test-links a:hover {
+            background: #0056b3;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 QRKit Test Status</h1>
+        <p>Comprehensive testing dashboard for the video calling application</p>
+        
+        <div id="test-results"></div>
+        
+        <div class="test-links">
+            <h3>🔗 Quick Access Links</h3>
+            <a href="/" target="_blank">🏠 Home</a>
+            <a href="/empregado" target="_blank">👨‍💼 Employee Interface</a>
+            <a href="/debug" target="_blank">🔧 Debug Page</a>
+            <a href="/test" target="_blank">🧪 Complete Test</a>
+        </div>
+        
+        <div>
+            <h3>🚀 Actions</h3>
+            <button onclick="runBasicTests()">Run Basic Tests</button>
+            <button onclick="testSessionCreation()">Test Session Creation</button>
+            <button onclick="testQRGeneration()">Test QR Generation</button>
+            <button onclick="testWebRTCConnection()">Test WebRTC</button>
+        </div>
+    </div>
+
+    <script>
+        function addTestResult(message, type = 'success') {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            results.appendChild(div);
+        }
+
+        async function runBasicTests() {
+            addTestResult('🚀 Starting basic tests...', 'warning');
+            
+            // Test server connection
+            try {
+                const response = await fetch('/');
+                if (response.ok) {
+                    addTestResult('✅ Server is responding');
+                } else {
+                    addTestResult('❌ Server responded with error: ' + response.status, 'error');
+                }
+            } catch (error) {
+                addTestResult('❌ Failed to connect to server: ' + error.message, 'error');
+            }
+            
+            // Test API endpoints
+            try {
+                const sessionResponse = await fetch('/api/create-session', { method: 'POST' });
+                if (sessionResponse.ok) {
+                    addTestResult('✅ Session creation API is working');
+                } else {
+                    addTestResult('❌ Session creation API failed: ' + sessionResponse.status, 'error');
+                }
+            } catch (error) {
+                addTestResult('❌ Session creation API error: ' + error.message, 'error');
+            }
+        }
+
+        async function testSessionCreation() {
+            addTestResult('🔗 Testing session creation...', 'warning');
+            
+            try {
+                const response = await fetch('/api/create-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addTestResult(`✅ Session created: ${data.sessionId}`);
+                    addTestResult(`Room: ${data.roomName}`);
+                    
+                    // Test client URL
+                    const clientUrl = `/cliente/${data.sessionId}`;
+                    addTestResult(`🔗 Client URL: <a href="${clientUrl}" target="_blank">${clientUrl}</a>`);
+                } else {
+                    addTestResult('❌ Session creation failed: ' + response.status, 'error');
+                }
+            } catch (error) {
+                addTestResult('❌ Session creation error: ' + error.message, 'error');
+            }
+        }
+
+        async function testQRGeneration() {
+            addTestResult('📱 Testing QR code generation...', 'warning');
+            
+            // First create a session
+            try {
+                const sessionResponse = await fetch('/api/create-session', { method: 'POST' });
+                const sessionData = await sessionResponse.json();
+                
+                // Then test QR generation
+                const qrResponse = await fetch(`/api/qr/${sessionData.sessionId}`);
+                
+                if (qrResponse.ok) {
+                    addTestResult('✅ QR code generated successfully');
+                    addTestResult(`🔗 QR URL: <a href="/api/qr/${sessionData.sessionId}" target="_blank">/api/qr/${sessionData.sessionId}</a>`);
+                } else {
+                    addTestResult('❌ QR generation failed: ' + qrResponse.status, 'error');
+                }
+            } catch (error) {
+                addTestResult('❌ QR generation error: ' + error.message, 'error');
+            }
+        }
+
+        async function testWebRTCConnection() {
+            addTestResult('📹 Testing WebRTC capabilities...', 'warning');
+            
+            // Check if browser supports WebRTC
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                addTestResult('✅ Browser supports WebRTC');
+                
+                // Test camera access
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    addTestResult('✅ Camera and microphone access granted');
+                    
+                    // Stop the stream
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (error) {
+                    addTestResult('❌ Camera/microphone access denied: ' + error.message, 'error');
+                }
+            } else {
+                addTestResult('❌ Browser does not support WebRTC', 'error');
+            }
+            
+            // Test LiveKit token generation
+            try {
+                const response = await fetch('/api/token?room=test-room&identity=test-user');
+                if (response.ok) {
+                    const data = await response.json();
+                    addTestResult('✅ LiveKit token generation working');
+                } else {
+                    addTestResult('❌ Token generation failed: ' + response.status, 'error');
+                }
+            } catch (error) {
+                addTestResult('❌ Token generation error: ' + error.message, 'error');
+            }
+        }
+
+        // Run basic tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            addTestResult('🏁 QRKit Test Dashboard loaded', 'warning');
+            runBasicTests();
+        });
+    </script>
+</body>
+</html>

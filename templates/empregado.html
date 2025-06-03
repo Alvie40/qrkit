@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Interface - QRKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+        
+        .controls-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .video-section {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #218838;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        .qr-code {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+        
+        .session-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .session-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .session-info p {
+            color: #333;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .video-local {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 1.2em;
+            background: #f8f9fa;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👨‍💼 Employee Interface</h1>
+            <p>Create video sessions and generate QR codes for clients</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="controls-section">
+                <h2 class="section-title">🎯 Session Control</h2>
+                
+                <div id="status" class="status info">
+                    Ready to start a new session
+                </div>
+                
+                <button id="createSessionBtn" class="btn">Create New Session</button>
+                <button id="startVideoBtn" class="btn" disabled>Start Video Call</button>
+                <button id="endSessionBtn" class="btn" disabled>End Session</button>
+                
+                <div id="qrContainer" class="qr-container" style="display: none;">
+                    <h4>📱 Client QR Code</h4>
+                    <img id="qrCode" class="qr-code" alt="QR Code" />
+                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                        Client can scan this code to join the video call
+                    </p>
+                </div>
+                
+                <div id="sessionInfo" class="session-info" style="display: none;">
+                    <h4>📋 Session Information</h4>
+                    <p><strong>Session ID:</strong> <span id="sessionId"></span></p>
+                    <p><strong>Room Name:</strong> <span id="roomName"></span></p>
+                    <p><strong>Client URL:</strong> <span id="clientUrl"></span></p>
+                </div>
+            </div>
+            
+            <div class="video-section">
+                <h2 class="section-title" style="position: absolute; top: 15px; left: 15px; color: white; z-index: 10;">
+                    📹 Your Video
+                </h2>
+                <video id="localVideo" class="video-local" autoplay muted playsinline style="display: none;"></video>
+                <div id="videoPlaceholder" class="video-placeholder">
+                    📷 Click "Start Video Call" to begin
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.4/dist/livekit-client.umd.min.js"></script>
+    <script>
+        const { Room, LocalParticipant, RemoteParticipant, RoomEvent, createLocalVideoTrack } = LiveKitClient;
+        
+        let currentSession = null;
+        let room = null;
+        let localVideoTrack = null;
+        
+        const elements = {
+            status: document.getElementById('status'),
+            createSessionBtn: document.getElementById('createSessionBtn'),
+            startVideoBtn: document.getElementById('startVideoBtn'),
+            endSessionBtn: document.getElementById('endSessionBtn'),
+            qrContainer: document.getElementById('qrContainer'),
+            qrCode: document.getElementById('qrCode'),
+            sessionInfo: document.getElementById('sessionInfo'),
+            sessionId: document.getElementById('sessionId'),
+            roomName: document.getElementById('roomName'),
+            clientUrl: document.getElementById('clientUrl'),
+            localVideo: document.getElementById('localVideo'),
+            videoPlaceholder: document.getElementById('videoPlaceholder')
+        };
+        
+        function updateStatus(message, type = 'info') {
+            elements.status.textContent = message;
+            elements.status.className = `status ${type}`;
+        }
+        
+        function updateButtons(createEnabled, startEnabled, endEnabled) {
+            elements.createSessionBtn.disabled = !createEnabled;
+            elements.startVideoBtn.disabled = !startEnabled;
+            elements.endSessionBtn.disabled = !endEnabled;
+        }
+        
+        elements.createSessionBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Creating new session...', 'info');
+                updateButtons(false, false, false);
+                
+                const response = await fetch('/api/create-session', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create session');
+                }
+                
+                currentSession = await response.json();
+                
+                // Display session information
+                elements.sessionId.textContent = currentSession.sessionId;
+                elements.roomName.textContent = currentSession.roomName;
+                elements.clientUrl.textContent = currentSession.clientUrl;
+                elements.sessionInfo.style.display = 'block';
+                
+                // Generate and display QR code
+                elements.qrCode.src = `/api/qr/${currentSession.sessionId}`;
+                elements.qrContainer.style.display = 'block';
+                
+                updateStatus('Session created successfully! Generate QR code for client.', 'success');
+                updateButtons(true, true, false);
+                
+            } catch (error) {
+                console.error('Error creating session:', error);
+                updateStatus('Error creating session: ' + error.message, 'error');
+                updateButtons(true, false, false);
+            }
+        });
+        
+        elements.startVideoBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Starting video call...', 'info');
+                updateButtons(false, false, false);
+                
+                // Get camera access
+                localVideoTrack = await createLocalVideoTrack({
+                    resolution: {
+                        width: 1280,
+                        height: 720
+                    }
+                });
+                
+                // Display local video
+                localVideoTrack.attach(elements.localVideo);
+                elements.localVideo.style.display = 'block';
+                elements.videoPlaceholder.style.display = 'none';
+                
+                // Get LiveKit token
+                const tokenResponse = await fetch(`/api/token?room=${currentSession.roomName}&identity=employee`);
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to get token');
+                }
+                const tokenData = await tokenResponse.json();
+                
+                // Connect to LiveKit room
+                room = new Room();
+                
+                room.on(RoomEvent.ParticipantConnected, (participant) => {
+                    updateStatus(`Client joined the call: ${participant.identity}`, 'success');
+                });
+                
+                room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+                    updateStatus(`Client left the call: ${participant.identity}`, 'info');
+                });
+                
+                room.on(RoomEvent.Disconnected, () => {
+                    updateStatus('Disconnected from room', 'info');
+                    cleanupVideo();
+                    updateButtons(true, false, false);
+                });
+                
+                await room.connect('ws://localhost:7880', tokenData.token);
+                
+                // Publish local video track
+                await room.localParticipant.publishTrack(localVideoTrack);
+                
+                updateStatus('Video call started! Waiting for client to join...', 'success');
+                updateButtons(false, false, true);
+                
+            } catch (error) {
+                console.error('Error starting video:', error);
+                updateStatus('Error starting video: ' + error.message, 'error');
+                cleanupVideo();
+                updateButtons(true, true, false);
+            }
+        });
+        
+        elements.endSessionBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Ending session...', 'info');
+                
+                if (room) {
+                    room.disconnect();
+                    room = null;
+                }
+                
+                cleanupVideo();
+                
+                currentSession = null;
+                elements.sessionInfo.style.display = 'none';
+                elements.qrContainer.style.display = 'none';
+                
+                updateStatus('Session ended', 'info');
+                updateButtons(true, false, false);
+                
+            } catch (error) {
+                console.error('Error ending session:', error);
+                updateStatus('Error ending session: ' + error.message, 'error');
+            }
+        });
+        
+        function cleanupVideo() {
+            if (localVideoTrack) {
+                localVideoTrack.stop();
+                localVideoTrack = null;
+            }
+            
+            elements.localVideo.style.display = 'none';
+            elements.videoPlaceholder.style.display = 'flex';
+        }
+        
+        // Initialize
+        updateButtons(true, false, false);
+    </script>
+</body>
+</html>

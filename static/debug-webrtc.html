@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug WebRTC - QRKit</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .warning { border-color: #ff9800; background: #fff3e0; }
+        .info { border-color: #2196F3; background: #e3f2fd; }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #005ED3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .log {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log .timestamp { color: #888; }
+        .log .success { color: #4CAF50; }
+        .log .error { color: #f44336; }
+        .log .warning { color: #ff9800; }
+        .log .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug WebRTC Connection</h1>
+        <p>Este teste foca especificamente no problema de conexão WebRTC identificado nos logs.</p>
+
+        <div id="loading-section" class="test-section info">
+            <h3>📦 1. Carregamento do LiveKit SDK</h3>
+            <div id="loading-status">Verificando...</div>
+        </div>
+
+        <div id="token-section" class="test-section">
+            <h3>🔑 2. Teste de Token JWT</h3>
+            <button onclick="testToken()" id="token-btn">Testar Token</button>
+            <div id="token-status">Aguardando teste...</div>
+        </div>
+
+        <div id="rtc-section" class="test-section">
+            <h3>🌐 3. Teste WebRTC Específico</h3>
+            <button onclick="testWebRTC()" id="rtc-btn">Testar WebRTC</button>
+            <div id="rtc-status">Aguardando teste...</div>
+        </div>
+
+        <div id="ice-section" class="test-section">
+            <h3>🧊 4. Debug ICE Candidates</h3>
+            <button onclick="debugICE()" id="ice-btn">Debug ICE</button>
+            <div id="ice-status">Aguardando teste...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Log Detalhado</h3>
+            <button onclick="clearLog()">Limpar Log</button>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- LiveKit SDK with multiple CDN fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.0.7/dist/livekit-client.umd.min.js"></script>
+    <script>
+        let room = null;
+        
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logEl.innerHTML += `<div><span class="timestamp">[${timestamp}]</span> <span class="${className}">${message}</span></div>`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(sectionId, message, className = '') {
+            const section = document.getElementById(sectionId);
+            const statusEl = section.querySelector('[id$="-status"]');
+            statusEl.textContent = message;
+            section.className = `test-section ${className}`;
+        }
+
+        // 1. Check LiveKit SDK Loading
+        function checkSDKLoading() {
+            if (typeof LiveKit !== 'undefined' && LiveKit.Room) {
+                log('✅ LiveKit SDK carregado com sucesso', 'success');
+                updateStatus('loading-section', '✅ SDK carregado corretamente', 'success');
+                return true;
+            } else {
+                log('❌ LiveKit SDK não carregado', 'error');
+                updateStatus('loading-section', '❌ Erro no carregamento do SDK', 'error');
+                return false;
+            }
+        }
+
+        // 2. Test Token Generation
+        async function testToken() {
+            try {
+                log('🔄 Testando geração de token...', 'info');
+                updateStatus('token-section', 'Gerando token...', 'warning');
+                
+                const response = await fetch('/token?room=debug-room&identity=debug-user');
+                const data = await response.json();
+                
+                if (data.token) {
+                    log(`✅ Token gerado com sucesso: ${data.token.substring(0, 50)}...`, 'success');
+                    updateStatus('token-section', '✅ Token JWT válido', 'success');
+                    return data.token;
+                } else {
+                    throw new Error('Token não recebido');
+                }
+            } catch (error) {
+                log(`❌ Erro ao gerar token: ${error.message}`, 'error');
+                updateStatus('token-section', `❌ Erro: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // 3. Test WebRTC Connection
+        async function testWebRTC() {
+            if (!checkSDKLoading()) return;
+            
+            try {
+                log('🔄 Iniciando teste WebRTC...', 'info');
+                updateStatus('rtc-section', 'Conectando...', 'warning');
+                
+                const token = await testToken();
+                if (!token) {
+                    updateStatus('rtc-section', '❌ Falhou na geração do token', 'error');
+                    return;
+                }
+
+                // Create room with debug options
+                room = new LiveKit.Room({
+                    adaptiveStream: false,
+                    dynacast: false,
+                    publishDefaults: {
+                        simulcast: false,
+                    }
+                });
+
+                // Add detailed event listeners
+                room.on(LiveKit.RoomEvent.Connected, () => {
+                    log('✅ Room conectada com sucesso!', 'success');
+                    updateStatus('rtc-section', '✅ Conexão WebRTC estabelecida', 'success');
+                });
+
+                room.on(LiveKit.RoomEvent.Disconnected, (reason) => {
+                    log(`⚠️ Room desconectada: ${reason}`, 'warning');
+                    updateStatus('rtc-section', `⚠️ Desconectado: ${reason}`, 'warning');
+                });
+
+                room.on(LiveKit.RoomEvent.ConnectionError, (error) => {
+                    log(`❌ Erro de conexão: ${error.message}`, 'error');
+                    updateStatus('rtc-section', `❌ Erro WebRTC: ${error.message}`, 'error');
+                });
+
+                room.on(LiveKit.RoomEvent.ReconnectError, (error) => {
+                    log(`❌ Erro de reconexão: ${error.message}`, 'error');
+                });
+
+                log('🔗 Tentando conectar ao LiveKit...', 'info');
+                await room.connect('ws://localhost:7880', token);
+                
+            } catch (error) {
+                log(`❌ Erro WebRTC: ${error.message}`, 'error');
+                updateStatus('rtc-section', `❌ Falha: ${error.message}`, 'error');
+                
+                // Log additional error details
+                if (error.code) {
+                    log(`Código do erro: ${error.code}`, 'error');
+                }
+                if (error.stack) {
+                    log(`Stack trace: ${error.stack}`, 'error');
+                }
+            }
+        }
+
+        // 4. Debug ICE Candidates
+        async function debugICE() {
+            try {
+                log('🔄 Iniciando debug de ICE candidates...', 'info');
+                updateStatus('ice-section', 'Analisando ICE...', 'warning');
+                
+                // Create a basic peer connection to test ICE gathering
+                const pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' }
+                    ]
+                });
+
+                const candidates = [];
+                
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        candidates.push(event.candidate);
+                        log(`🧊 ICE Candidate: ${event.candidate.candidate}`, 'info');
+                    } else {
+                        log(`✅ ICE gathering completo. Total: ${candidates.length} candidates`, 'success');
+                        updateStatus('ice-section', `✅ ${candidates.length} ICE candidates encontrados`, 'success');
+                        
+                        // Analyze candidate types
+                        const hostCandidates = candidates.filter(c => c.candidate.includes('typ host'));
+                        const srflxCandidates = candidates.filter(c => c.candidate.includes('typ srflx'));
+                        
+                        log(`📊 Host candidates: ${hostCandidates.length}`, 'info');
+                        log(`📊 Server-reflexive candidates: ${srflxCandidates.length}`, 'info');
+                        
+                        pc.close();
+                    }
+                };
+
+                pc.onicegatheringstatechange = () => {
+                    log(`🔄 ICE gathering state: ${pc.iceGatheringState}`, 'info');
+                };
+
+                // Create an offer to start ICE gathering
+                await pc.createOffer();
+                
+            } catch (error) {
+                log(`❌ Erro no debug ICE: ${error.message}`, 'error');
+                updateStatus('ice-section', `❌ Erro: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            log('🚀 Iniciando testes de debug WebRTC...', 'info');
+            setTimeout(checkSDKLoading, 100);
+        });
+    </script>
+</body>
+</html>

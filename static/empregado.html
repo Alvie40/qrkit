@@ -2,16 +2,81 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Página do Empregado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRKit - Página do Empregado</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      background-color: #f5f5f5; 
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 { 
+      color: #333; 
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 25px;
+    }
+    button { 
+      padding: 15px 30px; 
+      font-size: 16px; 
+      background: #007bff; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.3s;
+    }
+    button:hover { background: #0056b3; }
+    #room-info { 
+      margin: 20px 0; 
+      padding: 15px; 
+      background: #d4edda; 
+      border-radius: 6px;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .status { 
+      text-align: center; 
+      margin: 20px 0;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h2>Bem-vindo, Empregado!</h2>
-  <button id="btn-entrar">Simular leitura do QRCode</button>
+  <div class="container">
+    <h2>🏥 QRKit - Portal do Empregado</h2>
+    <div class="status">Sistema de Videoconferência Médica</div>
+    <p>Clique no botão abaixo para simular a leitura do QRCode e entrar na sala de videoconferência.</p>
+    <button id="btn-entrar">🎯 Simular leitura do QRCode</button>
+    <div id="room-info" style="display: none;">
+      <strong>✅ Sala criada:</strong> <span id="room-name"></span><br>
+      <small>O médico pode acessar esta sala automaticamente.</small>
+    </div>
+  </div>
   <script>
     document.getElementById('btn-entrar').onclick = function() {
-      // Gera um nome de sala aleatório e redireciona
-      const sala = 'sala-' + Math.floor(Math.random() * 100000);
-      window.location.href = '/video?room=' + sala;
+      // Gera um nome de sala aleatório e redireciona para sala do empregado
+      const sala = 'empregado-' + Math.floor(Math.random() * 100000);
+      document.getElementById('room-name').textContent = sala;
+      document.getElementById('room-info').style.display = 'block';
+      
+      // Pequena pausa para mostrar a informação antes de redirecionar
+      setTimeout(() => {
+        window.location.href = '/video?room=' + sala;
+      }, 1000);
     };
   </script>
 </body>

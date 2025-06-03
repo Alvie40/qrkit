@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Interface - QRKit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            width: 100%;
+            margin: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            min-height: 400px;
+        }
+        
+        .video-section {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16/9;
+        }
+        
+        .controls-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn.success {
+            background: #28a745;
+        }
+        
+        .btn.success:hover {
+            background: #218838;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .video-local, .video-remote {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 1.2em;
+            background: #f8f9fa;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .status {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .session-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .session-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .session-info p {
+            color: #333;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            color: white;
+            z-index: 10;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👤 Client Interface</h1>
+            <p>Join the video call with your healthcare provider</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-overlay" id="videoStatus">📹 Employee Video</div>
+                <video id="remoteVideo" class="video-remote" autoplay playsinline style="display: none;"></video>
+                <div id="videoPlaceholder" class="video-placeholder">
+                    <div>📱 Waiting for employee to start video...</div>
+                    <div style="font-size: 0.9em; color: #999;">Session: {{.SessionId}}</div>
+                </div>
+            </div>
+            
+            <div class="controls-section">
+                <h2 class="section-title">🎯 Call Controls</h2>
+                
+                <div class="session-info">
+                    <h4>📋 Session Information</h4>
+                    <p><strong>Session ID:</strong> {{.SessionId}}</p>
+                </div>
+                
+                <div id="status" class="status info">
+                    Ready to join the call
+                </div>
+                
+                <button id="joinCallBtn" class="btn">Join Video Call</button>
+                <button id="leaveCallBtn" class="btn danger" disabled>Leave Call</button>
+                
+                <div style="margin-top: 30px;">
+                    <h3 class="section-title">📹 Your Camera</h3>
+                    <video id="localVideo" class="video-local" autoplay muted playsinline style="border-radius: 10px; display: none;"></video>
+                    <div id="localVideoPlaceholder" class="video-placeholder" style="height: 200px; font-size: 1em;">
+                        📷 Camera will appear here
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.4/dist/livekit-client.umd.min.js"></script>
+    <script>
+        const { Room, LocalParticipant, RemoteParticipant, RoomEvent, createLocalVideoTrack } = LiveKitClient;
+        
+        const sessionId = '{{.SessionId}}';
+        let room = null;
+        let localVideoTrack = null;
+        let remoteVideoTrack = null;
+        
+        const elements = {
+            status: document.getElementById('status'),
+            joinCallBtn: document.getElementById('joinCallBtn'),
+            leaveCallBtn: document.getElementById('leaveCallBtn'),
+            localVideo: document.getElementById('localVideo'),
+            localVideoPlaceholder: document.getElementById('localVideoPlaceholder'),
+            remoteVideo: document.getElementById('remoteVideo'),
+            videoPlaceholder: document.getElementById('videoPlaceholder'),
+            videoStatus: document.getElementById('videoStatus')
+        };
+        
+        function updateStatus(message, type = 'info') {
+            elements.status.textContent = message;
+            elements.status.className = `status ${type}`;
+        }
+        
+        function updateButtons(joinEnabled, leaveEnabled) {
+            elements.joinCallBtn.disabled = !joinEnabled;
+            elements.leaveCallBtn.disabled = !leaveEnabled;
+        }
+        
+        elements.joinCallBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Joining video call...', 'info');
+                updateButtons(false, false);
+                
+                // Get camera access
+                localVideoTrack = await createLocalVideoTrack({
+                    resolution: {
+                        width: 1280,
+                        height: 720
+                    }
+                });
+                
+                // Display local video
+                localVideoTrack.attach(elements.localVideo);
+                elements.localVideo.style.display = 'block';
+                elements.localVideoPlaceholder.style.display = 'none';
+                
+                // Determine room name from session ID
+                const roomName = `room-${sessionId.split('-')[1]}`;
+                
+                // Get LiveKit token
+                const tokenResponse = await fetch(`/api/token?room=${roomName}&identity=client-${sessionId}`);
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to get token');
+                }
+                const tokenData = await tokenResponse.json();
+                
+                // Connect to LiveKit room
+                room = new Room();
+                
+                room.on(RoomEvent.ParticipantConnected, (participant) => {
+                    updateStatus(`Connected to call with ${participant.identity}`, 'success');
+                });
+                
+                room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    if (track.kind === 'video') {
+                        track.attach(elements.remoteVideo);
+                        elements.remoteVideo.style.display = 'block';
+                        elements.videoPlaceholder.style.display = 'none';
+                        elements.videoStatus.textContent = `📹 ${participant.identity}`;
+                    }
+                });
+                
+                room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+                    if (track.kind === 'video') {
+                        track.detach();
+                        elements.remoteVideo.style.display = 'none';
+                        elements.videoPlaceholder.style.display = 'flex';
+                        elements.videoStatus.textContent = '📹 Employee Video';
+                    }
+                });
+                
+                room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+                    updateStatus(`${participant.identity} left the call`, 'info');
+                });
+                
+                room.on(RoomEvent.Disconnected, () => {
+                    updateStatus('Disconnected from call', 'info');
+                    cleanupVideo();
+                    updateButtons(true, false);
+                });
+                
+                await room.connect('ws://localhost:7880', tokenData.token);
+                
+                // Publish local video track
+                await room.localParticipant.publishTrack(localVideoTrack);
+                
+                updateStatus('Successfully joined the video call!', 'success');
+                updateButtons(false, true);
+                
+            } catch (error) {
+                console.error('Error joining call:', error);
+                updateStatus('Error joining call: ' + error.message, 'error');
+                cleanupVideo();
+                updateButtons(true, false);
+            }
+        });
+        
+        elements.leaveCallBtn.addEventListener('click', async () => {
+            try {
+                updateStatus('Leaving call...', 'info');
+                
+                if (room) {
+                    room.disconnect();
+                    room = null;
+                }
+                
+                cleanupVideo();
+                
+                updateStatus('Left the call', 'info');
+                updateButtons(true, false);
+                
+            } catch (error) {
+                console.error('Error leaving call:', error);
+                updateStatus('Error leaving call: ' + error.message, 'error');
+            }
+        });
+        
+        function cleanupVideo() {
+            if (localVideoTrack) {
+                localVideoTrack.stop();
+                localVideoTrack = null;
+            }
+            
+            elements.localVideo.style.display = 'none';
+            elements.localVideoPlaceholder.style.display = 'flex';
+            elements.remoteVideo.style.display = 'none';
+            elements.videoPlaceholder.style.display = 'flex';
+            elements.videoStatus.textContent = '📹 Employee Video';
+        }
+        
+        // Initialize
+        updateButtons(true, false);
+    </script>
+</body>
+</html>
