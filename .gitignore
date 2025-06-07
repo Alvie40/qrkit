@@ -1,0 +1,18 @@
+# Ignore built Go binaries
+server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore vendor directory (if using modules)
+/vendor/
+
+# Ignore logs
+*.log
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
