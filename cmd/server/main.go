@@ -34,8 +34,14 @@ func main() {
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	log.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+       port := os.Getenv("PORT")
+       if port == "" {
+               port = "8080"
+       }
+
+       addr := ":" + port
+       log.Println("Server starting on", addr)
+       log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func serveHomePage(w http.ResponseWriter, r *http.Request) {
@@ -129,8 +135,14 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	sessions[sessionId] = roomName
 
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "http://localhost:8080/cliente/%s"}`, sessionId, roomName, sessionId)
+       port := os.Getenv("PORT")
+       if port == "" {
+               port = "8080"
+       }
+       baseURL := fmt.Sprintf("http://localhost:%s", port)
+
+       w.Header().Set("Content-Type", "application/json")
+       fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
 }
 
 func generateQRCode(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +152,11 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientUrl := fmt.Sprintf("http://localhost:8080/cliente/%s", sessionId)
+       port := os.Getenv("PORT")
+       if port == "" {
+               port = "8080"
+       }
+       clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
 	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
 	if err != nil {
