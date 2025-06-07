@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - QRKit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            text-align: center;
+        }
+        .btn {
+            padding: 15px 25px;
+            font-size: 1em;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .qr {
+            margin-top: 20px;
+        }
+        .qr img {
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Área Administrativa</h1>
+    <button id="createBtn" class="btn">Criar Sessão</button>
+    <div id="qr" class="qr" style="display:none;">
+        <h3>QR Code da Sessão</h3>
+        <img id="qrImg" src="" alt="QR Code">
+    </div>
+    <script>
+        document.getElementById('createBtn').addEventListener('click', async () => {
+            const resp = await fetch('/api/create-session', {method: 'POST'});
+            if (!resp.ok) {
+                alert('Erro ao criar sessão');
+                return;
+            }
+            const data = await resp.json();
+            document.getElementById('qrImg').src = '/api/qr/' + data.sessionId;
+            document.getElementById('qr').style.display = 'block';
+        });
+    </script>
+</body>
+</html>

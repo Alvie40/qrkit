@@ -18,8 +18,9 @@ var sessions = make(map[string]string) // sessionId -> roomName
 func main() {
 	// Main routes
 	http.HandleFunc("/", serveHomePage)
-	http.HandleFunc("/empregado", serveEmployeePage)
-	http.HandleFunc("/cliente/", serveClientPage)
+       http.HandleFunc("/empregado", serveEmployeePage)
+       http.HandleFunc("/admin", serveAdminPage)
+       http.HandleFunc("/cliente/", serveClientPage)
 	http.HandleFunc("/debug", serveDebugPage)
 	http.HandleFunc("/test", serveTestPage)
 	http.HandleFunc("/comprehensive-test", serveComprehensiveTestPage)
@@ -85,8 +86,13 @@ func serveHomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveEmployeePage(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
-	tmpl.Execute(w, nil)
+        tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
+        tmpl.Execute(w, nil)
+}
+
+func serveAdminPage(w http.ResponseWriter, r *http.Request) {
+        tmpl := template.Must(template.ParseFiles("templates/admin.html"))
+        tmpl.Execute(w, nil)
 }
 
 func serveClientPage(w http.ResponseWriter, r *http.Request) {
