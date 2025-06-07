@@ -14,11 +14,12 @@ import (
 )
 
 var sessions = make(map[string]string) // sessionId -> roomName
+var lastRoom string
 
 type QueueItem struct {
-        SessionID string    `json:"sessionId"`
-        RoomName  string    `json:"roomName"`
-        Timestamp time.Time `json:"timestamp"`
+	SessionID string    `json:"sessionId"`
+	RoomName  string    `json:"roomName"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 var employeeQueue []QueueItem
@@ -26,34 +27,37 @@ var employeeQueue []QueueItem
 func main() {
 	// Main routes
 	http.HandleFunc("/", serveHomePage)
-       http.HandleFunc("/empregado", serveEmployeePage)
-       http.HandleFunc("/admin", serveAdminPage)
-       http.HandleFunc("/cliente/", serveClientPage)
+	http.HandleFunc("/empregado", serveEmployeePage)
+	http.HandleFunc("/admin", serveAdminPage)
+	http.HandleFunc("/medico", serveDoctorPage)
+	http.HandleFunc("/cliente/", serveClientPage)
 	http.HandleFunc("/debug", serveDebugPage)
+	http.HandleFunc("/video", serveVideo)
 	http.HandleFunc("/test", serveTestPage)
 	http.HandleFunc("/comprehensive-test", serveComprehensiveTestPage)
 	http.HandleFunc("/status", serveStatusDashboard)
 	http.HandleFunc("/live-video-test", serveLiveVideoTest)
+	http.HandleFunc("/last-room", serveLastRoom)
 
 	// API routes
-       http.HandleFunc("/api/create-session", createSession)
-       http.HandleFunc("/api/token", generateToken)
-       http.HandleFunc("/api/qr/", generateQRCode)
-       http.HandleFunc("/api/join-queue", joinQueue)
-       http.HandleFunc("/api/next-session", nextSession)
-       http.HandleFunc("/api/end-session", endSession)
+	http.HandleFunc("/api/create-session", createSession)
+	http.HandleFunc("/api/token", generateToken)
+	http.HandleFunc("/api/qr/", generateQRCode)
+	http.HandleFunc("/api/join-queue", joinQueue)
+	http.HandleFunc("/api/next-session", nextSession)
+	http.HandleFunc("/api/end-session", endSession)
 
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-       addr := ":" + port
-       log.Println("Server starting on", addr)
-       log.Fatal(http.ListenAndServe(addr, nil))
+	addr := ":" + port
+	log.Println("Server starting on", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func serveHomePage(w http.ResponseWriter, r *http.Request) {
@@ -97,13 +101,13 @@ func serveHomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveEmployeePage(w http.ResponseWriter, r *http.Request) {
-        tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
-        tmpl.Execute(w, nil)
+	tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
+	tmpl.Execute(w, nil)
 }
 
 func serveAdminPage(w http.ResponseWriter, r *http.Request) {
-        tmpl := template.Must(template.ParseFiles("templates/admin.html"))
-        tmpl.Execute(w, nil)
+	tmpl := template.Must(template.ParseFiles("templates/admin.html"))
+	tmpl.Execute(w, nil)
 }
 
 func serveClientPage(w http.ResponseWriter, r *http.Request) {
@@ -151,15 +155,16 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	roomName := fmt.Sprintf("room-%d", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(999999))
 
 	sessions[sessionId] = roomName
+	lastRoom = roomName
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
-       baseURL := fmt.Sprintf("http://localhost:%s", port)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	baseURL := fmt.Sprintf("http://localhost:%s", port)
 
-       w.Header().Set("Content-Type", "application/json")
-       fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
 }
 
 func generateQRCode(w http.ResponseWriter, r *http.Request) {
@@ -169,11 +174,11 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
-       clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
 	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
 	if err != nil {
@@ -218,67 +223,89 @@ func generateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-        w.Header().Set("Content-Type", "application/json")
-        fmt.Fprintf(w, `{"token": "%s"}`, token)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"token": "%s"}`, token)
 }
 
 func joinQueue(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-                return
-        }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-        sessionID := r.FormValue("sessionId")
-        if sessionID == "" {
-                http.Error(w, "sessionId required", http.StatusBadRequest)
-                return
-        }
-        roomName := r.FormValue("roomName")
-        if roomName == "" {
-                roomName = sessions[sessionID]
-        }
+	sessionID := r.FormValue("sessionId")
+	if sessionID == "" {
+		http.Error(w, "sessionId required", http.StatusBadRequest)
+		return
+	}
+	roomName := r.FormValue("roomName")
+	if roomName == "" {
+		roomName = sessions[sessionID]
+	}
 
-        qi := QueueItem{SessionID: sessionID, RoomName: roomName, Timestamp: time.Now()}
-        employeeQueue = append(employeeQueue, qi)
+	qi := QueueItem{SessionID: sessionID, RoomName: roomName, Timestamp: time.Now()}
+	employeeQueue = append(employeeQueue, qi)
 
-        w.Header().Set("Content-Type", "application/json")
-        fmt.Fprint(w, `{"status":"queued"}`)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":"queued"}`)
 }
 
 func nextSession(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodGet {
-                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-                return
-        }
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-        if len(employeeQueue) == 0 {
-                w.Header().Set("Content-Type", "application/json")
-                fmt.Fprint(w, `{"status":"empty"}`)
-                return
-        }
+	if len(employeeQueue) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"status":"empty"}`)
+		return
+	}
 
-        qi := employeeQueue[0]
-        employeeQueue = employeeQueue[1:]
+	qi := employeeQueue[0]
+	employeeQueue = employeeQueue[1:]
 
-        w.Header().Set("Content-Type", "application/json")
-        fmt.Fprintf(w, `{"sessionId":"%s","roomName":"%s","timestamp":"%s"}`,
-                qi.SessionID, qi.RoomName, qi.Timestamp.Format(time.RFC3339))
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"sessionId":"%s","roomName":"%s","timestamp":"%s"}`,
+		qi.SessionID, qi.RoomName, qi.Timestamp.Format(time.RFC3339))
 }
 
 func endSession(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-                return
-        }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-        sessionID := r.FormValue("sessionId")
-        if sessionID == "" {
-                http.Error(w, "sessionId required", http.StatusBadRequest)
-                return
-        }
+	sessionID := r.FormValue("sessionId")
+	if sessionID == "" {
+		http.Error(w, "sessionId required", http.StatusBadRequest)
+		return
+	}
 
-        delete(sessions, sessionID)
+	delete(sessions, sessionID)
 
-        w.Header().Set("Content-Type", "application/json")
-        fmt.Fprint(w, `{"status":"ended"}`)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":"ended"}`)
+}
+
+func serveLastRoom(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"room":"%s"}`, lastRoom)
+}
+
+func serveDoctorPage(w http.ResponseWriter, r *http.Request) {
+	room := r.URL.Query().Get("room")
+	if room == "" {
+		tmpl := template.Must(template.ParseFiles("templates/medico.html"))
+		tmpl.Execute(w, nil)
+		return
+	}
+	tmpl := template.Must(template.ParseFiles("templates/video.html"))
+	tmpl.Execute(w, map[string]string{"Room": room})
+}
+
+func serveVideo(w http.ResponseWriter, r *http.Request) {
+	room := r.URL.Query().Get("room")
+	tmpl := template.Must(template.ParseFiles("templates/video.html"))
+	tmpl.Execute(w, map[string]string{"Room": room})
 }
