@@ -1,9 +1,0 @@
-[phases.setup]
-nixPkgs = ["go_1_23"]
-nixpkgsArchive = "5d562c02e45b0cd41b6edfc8458d4f3e4c15651a"
-
-[phases.build]
-cmds = ["go build -o out ./cmd/server"]
-
-[start]
-cmd = "./out"
