@@ -1,2 +1,8 @@
-[providers]
-go = { version = "1.24" }
+[phases.setup]
+nixPkgs = ["go_1_24"]
+
+[phases.build]
+cmds = ["go build -o out ./cmd/server"]
+
+[start]
+cmd = "./out"
