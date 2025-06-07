@@ -15,11 +15,20 @@ import (
 
 var sessions = make(map[string]string) // sessionId -> roomName
 
+type QueueItem struct {
+        SessionID string    `json:"sessionId"`
+        RoomName  string    `json:"roomName"`
+        Timestamp time.Time `json:"timestamp"`
+}
+
+var employeeQueue []QueueItem
+
 func main() {
 	// Main routes
 	http.HandleFunc("/", serveHomePage)
-	http.HandleFunc("/empregado", serveEmployeePage)
-	http.HandleFunc("/cliente/", serveClientPage)
+       http.HandleFunc("/empregado", serveEmployeePage)
+       http.HandleFunc("/admin", serveAdminPage)
+       http.HandleFunc("/cliente/", serveClientPage)
 	http.HandleFunc("/debug", serveDebugPage)
 	http.HandleFunc("/test", serveTestPage)
 	http.HandleFunc("/comprehensive-test", serveComprehensiveTestPage)
@@ -27,9 +36,12 @@ func main() {
 	http.HandleFunc("/live-video-test", serveLiveVideoTest)
 
 	// API routes
-	http.HandleFunc("/api/create-session", createSession)
-	http.HandleFunc("/api/token", generateToken)
-	http.HandleFunc("/api/qr/", generateQRCode)
+       http.HandleFunc("/api/create-session", createSession)
+       http.HandleFunc("/api/token", generateToken)
+       http.HandleFunc("/api/qr/", generateQRCode)
+       http.HandleFunc("/api/join-queue", joinQueue)
+       http.HandleFunc("/api/next-session", nextSession)
+       http.HandleFunc("/api/end-session", endSession)
 
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
@@ -85,8 +97,13 @@ func serveHomePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveEmployeePage(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
-	tmpl.Execute(w, nil)
+        tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
+        tmpl.Execute(w, nil)
+}
+
+func serveAdminPage(w http.ResponseWriter, r *http.Request) {
+        tmpl := template.Must(template.ParseFiles("templates/admin.html"))
+        tmpl.Execute(w, nil)
 }
 
 func serveClientPage(w http.ResponseWriter, r *http.Request) {
@@ -201,6 +218,67 @@ func generateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"token": "%s"}`, token)
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprintf(w, `{"token": "%s"}`, token)
+}
+
+func joinQueue(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+                return
+        }
+
+        sessionID := r.FormValue("sessionId")
+        if sessionID == "" {
+                http.Error(w, "sessionId required", http.StatusBadRequest)
+                return
+        }
+        roomName := r.FormValue("roomName")
+        if roomName == "" {
+                roomName = sessions[sessionID]
+        }
+
+        qi := QueueItem{SessionID: sessionID, RoomName: roomName, Timestamp: time.Now()}
+        employeeQueue = append(employeeQueue, qi)
+
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(w, `{"status":"queued"}`)
+}
+
+func nextSession(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodGet {
+                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+                return
+        }
+
+        if len(employeeQueue) == 0 {
+                w.Header().Set("Content-Type", "application/json")
+                fmt.Fprint(w, `{"status":"empty"}`)
+                return
+        }
+
+        qi := employeeQueue[0]
+        employeeQueue = employeeQueue[1:]
+
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprintf(w, `{"sessionId":"%s","roomName":"%s","timestamp":"%s"}`,
+                qi.SessionID, qi.RoomName, qi.Timestamp.Format(time.RFC3339))
+}
+
+func endSession(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+                http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+                return
+        }
+
+        sessionID := r.FormValue("sessionId")
+        if sessionID == "" {
+                http.Error(w, "sessionId required", http.StatusBadRequest)
+                return
+        }
+
+        delete(sessions, sessionID)
+
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprint(w, `{"status":"ended"}`)
 }

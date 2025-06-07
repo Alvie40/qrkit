@@ -282,6 +282,45 @@
             elements.startVideoBtn.disabled = !startEnabled;
             elements.endSessionBtn.disabled = !endEnabled;
         }
+
+        async function joinQueue(sessionId) {
+            try {
+                updateStatus('Joining queue...', 'info');
+                const resp = await fetch('/api/join-queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+
+                if (resp.redirected) {
+                    window.location.href = resp.url;
+                    return;
+                }
+
+                if (!resp.ok) {
+                    throw new Error('Failed to join queue');
+                }
+
+                const data = await resp.json().catch(() => null);
+                if (data && data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    updateStatus('Waiting for doctor to accept...', 'info');
+                }
+            } catch (error) {
+                console.error('Error joining queue:', error);
+                updateStatus('Error joining queue: ' + error.message, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const sessionFromQuery = params.get('session');
+            if (sessionFromQuery) {
+                updateButtons(false, false, false);
+                joinQueue(sessionFromQuery);
+            }
+        });
         
         elements.createSessionBtn.addEventListener('click', async () => {
             try {
