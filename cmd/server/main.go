@@ -13,12 +13,19 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+type SessionInfo struct {
+	ID   string
+	Room string
+}
+
 var sessions = make(map[string]string) // sessionId -> roomName
+var sessionQueue []SessionInfo
 
 func main() {
 	// Main routes
 	http.HandleFunc("/", serveHomePage)
 	http.HandleFunc("/empregado", serveEmployeePage)
+	http.HandleFunc("/medico", serveDoctorPage)
 	http.HandleFunc("/cliente/", serveClientPage)
 	http.HandleFunc("/debug", serveDebugPage)
 	http.HandleFunc("/test", serveTestPage)
@@ -30,18 +37,21 @@ func main() {
 	http.HandleFunc("/api/create-session", createSession)
 	http.HandleFunc("/api/token", generateToken)
 	http.HandleFunc("/api/qr/", generateQRCode)
+	http.HandleFunc("/api/queue", queueHandler)
+	http.HandleFunc("/api/next-session", nextSession)
+	http.HandleFunc("/api/end-session", endSession)
 
 	// Static files
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-       addr := ":" + port
-       log.Println("Server starting on", addr)
-       log.Fatal(http.ListenAndServe(addr, nil))
+	addr := ":" + port
+	log.Println("Server starting on", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func serveHomePage(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +96,11 @@ func serveHomePage(w http.ResponseWriter, r *http.Request) {
 
 func serveEmployeePage(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("templates/empregado.html"))
+	tmpl.Execute(w, nil)
+}
+
+func serveDoctorPage(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("templates/doctor.html"))
 	tmpl.Execute(w, nil)
 }
 
@@ -134,15 +149,16 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	roomName := fmt.Sprintf("room-%d", rand.New(rand.NewSource(time.Now().UnixNano())).Intn(999999))
 
 	sessions[sessionId] = roomName
+	sessionQueue = append(sessionQueue, SessionInfo{ID: sessionId, Room: roomName})
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
-       baseURL := fmt.Sprintf("http://localhost:%s", port)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	baseURL := fmt.Sprintf("http://localhost:%s", port)
 
-       w.Header().Set("Content-Type", "application/json")
-       fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
 }
 
 func generateQRCode(w http.ResponseWriter, r *http.Request) {
@@ -152,11 +168,11 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-       port := os.Getenv("PORT")
-       if port == "" {
-               port = "8080"
-       }
-       clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
 	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
 	if err != nil {
@@ -203,4 +219,31 @@ func generateToken(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"token": "%s"}`, token)
+}
+
+func nextSession(w http.ResponseWriter, r *http.Request) {
+	if len(sessionQueue) == 0 {
+		http.Error(w, "no sessions", http.StatusNotFound)
+		return
+	}
+	s := sessionQueue[0]
+	sessionQueue = sessionQueue[1:]
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"room":"%s","sessionId":"%s"}`, s.Room, s.ID)
+}
+
+func endSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func queueHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, "[")
+	for i, s := range sessionQueue {
+		if i > 0 {
+			fmt.Fprint(w, ",")
+		}
+		fmt.Fprintf(w, "%q", s.ID)
+	}
+	fmt.Fprint(w, "]")
 }

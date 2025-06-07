@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - QRKit</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        ul { list-style: none; padding: 0; }
+        li {
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #fff;
+        }
+        #acceptBtn { background: #28a745; }
+        #endBtn { background: #dc3545; }
+        #reloadBtn { background: #007bff; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🩺 Fila de Atendimentos</h1>
+    <ul id="queueList"></ul>
+    <div style="margin-top:20px;">
+        <button id="acceptBtn" class="btn">Aceitar</button>
+        <button id="endBtn" class="btn">Finalizar</button>
+        <button id="reloadBtn" class="btn">Recarregar</button>
+    </div>
+</div>
+<script>
+async function loadQueue() {
+    try {
+        const res = await fetch('/api/queue');
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = document.getElementById('queueList');
+        list.innerHTML = '';
+        data.forEach(emp => {
+            const li = document.createElement('li');
+            li.textContent = emp;
+            list.appendChild(li);
+        });
+    } catch (err) {
+        console.error('queue error', err);
+    }
+}
+
+document.getElementById('reloadBtn').onclick = loadQueue;
+
+document.getElementById('acceptBtn').onclick = async () => {
+    try {
+        const res = await fetch('/api/next-session');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.room) {
+            window.location.href = '/video?room=' + encodeURIComponent(data.room);
+        }
+    } catch (err) {
+        console.error('accept error', err);
+    }
+};
+
+document.getElementById('endBtn').onclick = async () => {
+    try {
+        await fetch('/api/end-session', {method: 'POST'});
+    } catch (err) {
+        console.error('end error', err);
+    }
+};
+
+loadQueue();
+</script>
+</body>
+</html>
