@@ -45,12 +45,14 @@ go build -o server ./cmd/server
 ### Opção 3: Docker Compose
 
 ```bash
-# Inicie todos os serviços com Docker
+# Inicie qrkit, livekit, PostgreSQL e Redis
 docker-compose up -d
 
 # Verifique os logs
 docker-compose logs -f
 ```
+
+Com todos os containers em execução, o QRKit acessará o banco PostgreSQL e o Redis utilizando as variáveis `DATABASE_URL` e `REDIS_URL` definidas no `docker-compose`.
 
 ## 🌐 Acessos
 
@@ -156,6 +158,8 @@ Para o futuro, é possível adicionar testes automatizados utilizando:
 
 - **qrkit**: Aplicação Go principal (porta 8080)
 - **livekit**: Servidor LiveKit (porta 7880)
+- **db**: PostgreSQL com volume persistente
+- **redis**: Cache/filas (porta 6379)
 
 ### Configuração:
 
@@ -167,6 +171,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
+      - db
+      - redis
       - livekit
 
   livekit:
@@ -175,6 +181,19 @@ services:
       - "7880:7880"
       - "7881:7881/udp"
       - "50000-50100:50000-50100/udp"
+
+  db:
+    image: postgres:15
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:
 ```
 
 ## 🔐 Configuração
@@ -184,6 +203,10 @@ services:
 - `LIVEKIT_API_KEY`: Chave da API LiveKit (padrão: "mykey")
 - `LIVEKIT_API_SECRET`: Secret da API LiveKit (padrão: "mysecret")
 - `LIVEKIT_HOST`: Host do servidor LiveKit (padrão: "localhost:7880")
+- `DATABASE_URL`: String de conexão PostgreSQL (padrão: `postgres://qrkit:qrkitpass@db:5432/qrkit?sslmode=disable`)
+- `REDIS_URL`: Endereço do Redis (padrão: `redis://redis:6379`)
+
+QRKit lê essas variáveis para conectar ao banco de dados e ao cache automaticamente quando os containers estão ativos.
 
 ### LiveKit Configuration:
 
