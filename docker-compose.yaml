@@ -4,14 +4,14 @@ services:
   qrkit:
     build: .
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates
     environment:
       - LIVEKIT_API_KEY=mykey
       - LIVEKIT_API_SECRET=mysecret
-      - LIVEKIT_HOST=localhost:7880
+      - LIVEKIT_HOST=livekit:7880
     depends_on:
       - livekit
 
@@ -25,4 +25,4 @@ services:
     volumes:
       - ./livekit-local.yaml:/livekit.yaml
     environment:
-      - "LIVEKIT_KEYS=mykey: mysecret"
+      - "LIVEKIT_KEYS=mykey:mysecret"
