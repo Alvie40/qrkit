@@ -1,6 +1,8 @@
 module github.com/alvarolopes/qrkit
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.1
 
 require (
 	github.com/livekit/protocol v1.39.0
