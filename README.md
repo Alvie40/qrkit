@@ -114,7 +114,19 @@ QRKit/
 
 ## 🧪 Testes
 
-O sistema inclui várias ferramentas de teste:
+Atualmente não existe uma suíte automatizada. Os testes são executados manualmente
+através de scripts e páginas HTML de apoio.
+
+### Scripts manuais
+- `./test_app.sh` – verifica os principais endpoints da aplicação.
+- `./end-to-end-test.sh` – valida o fluxo completo de videochamada.
+- Outros scripts como `test_complete_flow.sh` podem auxiliar em cenários
+  específicos.
+
+### Páginas HTML de teste
+Arquivos em `static/` (por exemplo `comprehensive-test.html`,
+`debug-webrtc.html` e `live-video-test.html`) permitem testar manualmente câmera,
+microfone e a integração com o LiveKit.
 
 ### Dashboard de Status (Demo)
 - Esta página em `static/status-dashboard.html` demonstra um possível painel de métricas.
@@ -131,6 +143,12 @@ O sistema inclui várias ferramentas de teste:
 - Testes manuais
 - Diagnósticos detalhados
 - Simulação de cenários
+
+### Automação de Testes
+Para o futuro, é possível adicionar testes automatizados utilizando:
+- `go test` para unidades e integrações no código Go.
+- Ferramentas como **Playwright** para testar a interface web de forma
+  end‑to‑end.
 
 ## 🐳 Docker
 
