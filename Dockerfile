@@ -1,8 +1,17 @@
-FROM golang:1.24.3-alpine
+FROM golang:1.23
 
 WORKDIR /app
-COPY . .
-RUN go build -o server ./cmd/server
 
-EXPOSE 8080
-CMD ["./server"]
+# Copie os arquivos de dependências primeiro para cache eficiente
+COPY go.mod .
+COPY go.sum .
+
+RUN go mod download
+
+# Agora copie o resto do código
+COPY . .
+
+RUN go build -o out ./cmd/server
+
+EXPOSE 3000
+CMD ["./out"]

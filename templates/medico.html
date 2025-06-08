@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRKit - Página do Médico</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      background-color: #f5f5f5; 
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 { 
+      color: #333; 
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #status { 
+      margin: 20px 0; 
+      padding: 15px; 
+      background: #e3f2fd; 
+      border-radius: 6px;
+      border: 1px solid #2196f3;
+      color: #0d47a1;
+      text-align: center;
+      font-weight: bold;
+    }
+    .loading { color: #6c757d; }
+    .info-box { 
+      background: #e8f5e8; 
+      padding: 20px; 
+      border-radius: 6px; 
+      margin: 20px 0; 
+      border-left: 4px solid #4caf50; 
+      color: #2e7d32;
+    }
+    button { 
+      padding: 15px 30px; 
+      font-size: 16px; 
+      background: #007bff; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { background: #0056b3; }
+    .status-text { 
+      text-align: center; 
+      margin: 20px 0;
+      font-weight: bold;
+    }
+  </style>
+  <script>
+    let checkCount = 0;
+    // Checa se já existe sala na URL, se não, fica aguardando
+    function checkSala() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('room')) {
+        checkCount++;
+        document.getElementById('status').innerHTML = `Verificando salas disponíveis... (tentativa ${checkCount})`;
+        
+        setTimeout(() => {
+          // Busca a última sala criada pelo empregado
+          fetch('/last-room')
+            .then(r => r.json())
+            .then(data => {
+              console.log('Resposta do servidor:', data);
+              if (data.room && data.room.startsWith('empregado-')) {
+                document.getElementById('status').innerHTML = `Sala encontrada: ${data.room}. Redirecionando...`;
+                // Redireciona para a mesma sala do empregado
+                setTimeout(() => {
+                  window.location.href = '/medico?room=' + data.room;
+                }, 1000);
+              } else {
+                document.getElementById('status').innerHTML = `Nenhuma sala ativa encontrada. Aguardando empregado entrar...`;
+                checkSala();
+              }
+            })
+            .catch(err => {
+              console.error('Erro ao verificar salas:', err);
+              document.getElementById('status').innerHTML = `Erro ao verificar salas. Tentando novamente...`;
+              checkSala();
+            });
+        }, 2000);
+      }
+    }
+    window.onload = checkSala;
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>🩺 QRKit - Portal do Médico</h2>
+    <div class="status-text">Sistema de Videoconferência Médica</div>
+    
+    <div class="info-box">
+      <strong>ℹ️ Como funciona:</strong><br>
+      • O médico <strong>não precisa de QRCode</strong><br>
+      • Quando um empregado criar uma sala, você será redirecionado automaticamente<br>
+      • O sistema monitora em tempo real as salas ativas
+    </div>
+    
+    <div id="status" class="loading">🔍 Iniciando verificação...</div>
+    <button onclick="checkSala()" style="margin-top: 15px;">🔄 Verificar manualmente</button>
+    <p style="text-align: center; margin-top: 20px;"><small>Você será redirecionado automaticamente para a sala assim que ela estiver disponível.</small></p>
+  </div>
+</body>
+</html>
