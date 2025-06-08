@@ -9,7 +9,7 @@ Um sistema completo de videochamadas que utiliza QR codes para conectar facilmen
 - **Interface do Cliente**: Acesso direto via QR code ou URL
 - **WebRTC**: Comunicação de vídeo em tempo real
 - **LiveKit Integration**: Infraestrutura robusta de WebRTC
-- **Dashboard de Status**: Monitoramento em tempo real do sistema
+- **Dashboard de Status (demo)**: Exemplo de visualização de metricas no navegador
 - **Ferramentas de Debug**: Suite completa de testes e diagnósticos
 
 ## 📋 Requisitos
@@ -58,7 +58,7 @@ Após inicializar o sistema, acesse:
 
 - **🏠 Página Inicial**: http://localhost:8080
 - **👨‍💼 Interface do Funcionário**: http://localhost:8080/empregado
-- **📊 Dashboard de Status**: http://localhost:8080/status
+- **📊 Dashboard de Status (demo)**: http://localhost:8080/status (apenas cliente)
 - **🔧 Ferramentas de Debug**: http://localhost:8080/debug
 - **🧪 Testes Abrangentes**: http://localhost:8080/comprehensive-test
 
@@ -99,7 +99,7 @@ QRKit/
 - **LiveKit**: Servidor WebRTC para comunicação de vídeo
 - **Frontend**: Interfaces web responsivas
 - **QR Generator**: Geração automática de QR codes
-- **Status Dashboard**: Monitoramento em tempo real
+- **Status Dashboard (demo)**: Página exemplo de metricas
 
 ## 🔧 API Endpoints
 
@@ -116,11 +116,10 @@ QRKit/
 
 O sistema inclui várias ferramentas de teste:
 
-### Dashboard de Status em Tempo Real
-- Monitor automatizado do sistema
-- Métricas de performance
-- Testes de conectividade
-- Log de atividades
+### Dashboard de Status (Demo)
+- Esta página em `static/status-dashboard.html` demonstra um possível painel de métricas.
+- Os valores são simulados no navegador e não representam dados reais do servidor.
+
 
 ### Suite de Testes Abrangente
 - Testes de API
@@ -199,7 +198,7 @@ development: true
 2. **Câmera não funciona**:
    - Verifique permissões do navegador
    - Use HTTPS em produção
-   - Teste com o Dashboard de Status
+   - Use a página de Dashboard de Status (demo) para checar o frontend
 
 3. **LiveKit não conecta**:
    ```bash
@@ -222,7 +221,7 @@ development: true
 ./start.sh
 
 # Verificação de status
-curl http://localhost:8080/status
+curl http://localhost:8080/status (apenas cliente)
 
 # Teste de API
 curl -X POST http://localhost:8080/api/create-session
@@ -246,12 +245,12 @@ curl -X POST http://localhost:8080/api/create-session
 
 ## 📊 Monitoramento
 
-O sistema inclui monitoramento abrangente:
+Esta aplicação inclui apenas a página `static/status-dashboard.html` como demonstração de frontend. Ela não fornece métricas reais do servidor.
 
-- **Métricas em Tempo Real**: Uptime, requests, response times
-- **Status de Componentes**: Servidor, APIs, WebRTC, LiveKit
-- **Logs de Atividade**: Histórico de operações
-- **Alertas Visuais**: Indicadores de status coloridos
+Para monitoramento de produção, considere integrar Prometheus e Grafana:
+1. Exponha métricas no servidor Go usando o cliente Prometheus.
+2. Execute Prometheus e Grafana (por exemplo via Docker).
+3. Crie dashboards no Grafana apontando para seu Prometheus.
 
 ## 🤝 Contribuição
 
@@ -273,7 +272,7 @@ Para suporte:
 1. Verifique a documentação acima
 2. Use as ferramentas de debug incluídas
 3. Consulte os logs do sistema
-4. Acesse o Dashboard de Status para diagnósticos
+4. Acesse o Dashboard de Status (demo) para diagnósticos
 
 ---
 
