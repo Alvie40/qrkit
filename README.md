@@ -43,6 +43,10 @@ docker-compose logs -f
 
 Com todos os containers em execução, o QRKit acessará o banco PostgreSQL e o Redis utilizando as variáveis `DATABASE_URL` e `REDIS_URL` definidas no `docker-compose`.
 
+### Deploy com Coolify
+
+Outra opção é utilizar a plataforma [Coolify](https://coolify.io/) para orquestrar os componentes. Basta criar recursos separados para o banco PostgreSQL, o servidor LiveKit e a aplicação QRKit. A configuração detalhada está descrita em [COOLIFY-DEPLOYMENT.md](COOLIFY-DEPLOYMENT.md).
+
 ## 🌐 Acessos
 
 Após inicializar o sistema, acesse:
