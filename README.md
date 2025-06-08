@@ -21,18 +21,7 @@ Um sistema completo de videochamadas que utiliza QR codes para conectar facilmen
 
 ## 🏃‍♂️ Início Rápido
 
-### Opção 1: Execução Automática
-
-```bash
-# Clone e navegue para o diretório
-cd /Users/alvie/Documents/repo/apps/qrkit
-
-# Execute o script de inicialização automática
-chmod +x start.sh
-./start.sh
-```
-
-### Opção 2: Execução Manual
+### Opção 1: Execução Manual
 
 ```bash
 # Compile a aplicação
@@ -42,7 +31,7 @@ go build -o server ./cmd/server
 ./server
 ```
 
-### Opção 3: Docker Compose
+### Opção 2: Docker Compose
 
 ```bash
 # Inicie qrkit, livekit, PostgreSQL e Redis
@@ -91,7 +80,6 @@ QRKit/
 ├── static/              # Arquivos estáticos (CSS, JS, HTML)
 ├── docker-compose.yml   # Configuração Docker
 ├── livekit-local.yaml   # Configuração LiveKit
-├── start.sh            # Script de inicialização
 └── README.md           # Esta documentação
 ```
 
@@ -116,14 +104,8 @@ QRKit/
 
 ## 🧪 Testes
 
-Atualmente não existe uma suíte automatizada. Os testes são executados manualmente
-através de scripts e páginas HTML de apoio.
+Atualmente não existe uma suíte automatizada. Os testes são executados manualmente utilizando as páginas HTML de apoio.
 
-### Scripts manuais
-- `./test_app.sh` – verifica os principais endpoints da aplicação.
-- `./end-to-end-test.sh` – valida o fluxo completo de videochamada.
-- Outros scripts como `test_complete_flow.sh` podem auxiliar em cenários
-  específicos.
 
 ### Páginas HTML de teste
 Arquivos em `static/` (por exemplo `comprehensive-test.html`,
@@ -259,7 +241,6 @@ development: true
 
 ```bash
 # Teste completo do sistema
-./start.sh
 
 # Verificação de status
 curl http://localhost:8080/status (apenas cliente)
