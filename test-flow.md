@@ -16,7 +16,7 @@
 
 ### 1️⃣ **Verificar Serviços (FEITO)**
 ```bash
-cd /Users/alvie/Documents/repo/apps/qrkit
+cd /path/to/qrkit
 docker-compose ps
 ```
 ✅ Status: qrkit-qrkit-1 (porta 8080) + qrkit-livekit-1 (porta 7880)
