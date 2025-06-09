@@ -114,7 +114,7 @@
         
         // Teste 2: Verificar se consegue pegar token
         log('Teste 2: Solicitando token...');
-        const resp = await fetch('/token?room=test&identity=test-user');
+        const resp = await fetch('/api/token?room=test&identity=test-user');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         log('✅ Token recebido');

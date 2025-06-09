@@ -218,7 +218,7 @@
     async function testTokenGeneration() {
       log('Testando geração de token...');
       try {
-        const response = await fetch(`/token?room=test-room&identity=test-user`);
+        const response = await fetch(`/api/token?room=test-room&identity=test-user`);
         if (response.ok) {
           const data = await response.json();
           if (data.token) {
