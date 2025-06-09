@@ -130,7 +130,7 @@
 
                 // 3. Obter token
                 log('🔄 Obtendo token JWT...');
-                const response = await fetch('/token?room=quick-test&identity=test-user');
+                const response = await fetch('/api/token?room=quick-test&identity=test-user');
                 const data = await response.json();
                 if (!data.token) {
                     throw new Error('Falha na geração do token');

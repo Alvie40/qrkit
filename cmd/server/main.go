@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/livekit/protocol/auth"
@@ -233,17 +235,34 @@ func joinQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID := r.FormValue("sessionId")
-	if sessionID == "" {
+	var payload struct {
+		SessionID string `json:"sessionId"`
+		RoomName  string `json:"roomName"`
+	}
+
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, "invalid json", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if payload.SessionID == "" {
+		payload.SessionID = r.FormValue("sessionId")
+	}
+	if payload.RoomName == "" {
+		payload.RoomName = r.FormValue("roomName")
+	}
+	if payload.SessionID == "" {
 		http.Error(w, "sessionId required", http.StatusBadRequest)
 		return
 	}
-	roomName := r.FormValue("roomName")
-	if roomName == "" {
-		roomName = sessions[sessionID]
+	if payload.RoomName == "" {
+		payload.RoomName = sessions[payload.SessionID]
 	}
 
-	qi := QueueItem{SessionID: sessionID, RoomName: roomName, Timestamp: time.Now()}
+	qi := QueueItem{SessionID: payload.SessionID, RoomName: payload.RoomName, Timestamp: time.Now()}
 	employeeQueue = append(employeeQueue, qi)
 
 	w.Header().Set("Content-Type", "application/json")

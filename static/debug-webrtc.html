@@ -138,7 +138,7 @@
                 log('🔄 Testando geração de token...', 'info');
                 updateStatus('token-section', 'Gerando token...', 'warning');
                 
-                const response = await fetch('/token?room=debug-room&identity=debug-user');
+                const response = await fetch('/api/token?room=debug-room&identity=debug-user');
                 const data = await response.json();
                 
                 if (data.token) {

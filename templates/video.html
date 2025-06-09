@@ -110,7 +110,7 @@
       async function fetchToken(identity) {
       updateStatus('Solicitando token...');
       addDebugInfo(`Solicitando token para identidade: ${identity}, sala: ${roomName}`);
-      const resp = await fetch(`/token?room=${roomName}&identity=${identity}`);
+      const resp = await fetch(`/api/token?room=${roomName}&identity=${identity}`);
       if (!resp.ok) {
         addDebugInfo(`Erro HTTP: ${resp.status} ${resp.statusText}`);
         throw new Error('Erro ao obter token do servidor');
