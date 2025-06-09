@@ -3,8 +3,8 @@ version: "3.8"
 services:
   qrkit:
     build: .
-    ports:
-      - "8081:8080"
+    # NÃO exponha portas manualmente no Compose para produção no Coolify!
+    # Coolify vai cuidar do roteamento para você via domínio e HTTPS.
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates
