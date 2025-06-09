@@ -9,7 +9,7 @@ Um sistema completo de videochamadas que utiliza QR codes para conectar facilmen
 - **Interface do Cliente**: Acesso direto via QR code ou URL
 - **WebRTC**: Comunicação de vídeo em tempo real
 - **LiveKit Integration**: Infraestrutura robusta de WebRTC
-- **Dashboard de Status**: Monitoramento em tempo real do sistema
+- **Dashboard de Status (demo)**: Exemplo de visualização de metricas no navegador
 - **Ferramentas de Debug**: Suite completa de testes e diagnósticos
 
 ## 📋 Requisitos
@@ -21,18 +21,7 @@ Um sistema completo de videochamadas que utiliza QR codes para conectar facilmen
 
 ## 🏃‍♂️ Início Rápido
 
-### Opção 1: Execução Automática
-
-```bash
-# Clone e navegue para o diretório
-cd /Users/alvie/Documents/repo/apps/qrkit
-
-# Execute o script de inicialização automática
-chmod +x start.sh
-./start.sh
-```
-
-### Opção 2: Execução Manual
+### Opção 1: Execução Manual
 
 ```bash
 # Compile a aplicação
@@ -42,15 +31,21 @@ go build -o server ./cmd/server
 ./server
 ```
 
-### Opção 3: Docker Compose
+### Opção 2: Docker Compose
 
 ```bash
-# Inicie todos os serviços com Docker
+# Inicie qrkit, livekit, PostgreSQL e Redis
 docker-compose up -d
 
 # Verifique os logs
 docker-compose logs -f
 ```
+
+Com todos os containers em execução, o QRKit acessará o banco PostgreSQL e o Redis utilizando as variáveis `DATABASE_URL` e `REDIS_URL` definidas no `docker-compose`.
+
+### Deploy com Coolify
+
+Outra opção é utilizar a plataforma [Coolify](https://coolify.io/) para orquestrar os componentes. Basta criar recursos separados para o banco PostgreSQL, o servidor LiveKit e a aplicação QRKit. A configuração detalhada está descrita em [COOLIFY-DEPLOYMENT.md](COOLIFY-DEPLOYMENT.md).
 
 ## 🌐 Acessos
 
@@ -58,7 +53,7 @@ Após inicializar o sistema, acesse:
 
 - **🏠 Página Inicial**: http://localhost:8080
 - **👨‍💼 Interface do Funcionário**: http://localhost:8080/empregado
-- **📊 Dashboard de Status**: http://localhost:8080/status
+- **📊 Dashboard de Status (demo)**: http://localhost:8080/status (apenas cliente)
 - **🔧 Ferramentas de Debug**: http://localhost:8080/debug
 - **🧪 Testes Abrangentes**: http://localhost:8080/comprehensive-test
 
@@ -89,7 +84,6 @@ QRKit/
 ├── static/              # Arquivos estáticos (CSS, JS, HTML)
 ├── docker-compose.yml   # Configuração Docker
 ├── livekit-local.yaml   # Configuração LiveKit
-├── start.sh            # Script de inicialização
 └── README.md           # Esta documentação
 ```
 
@@ -99,7 +93,7 @@ QRKit/
 - **LiveKit**: Servidor WebRTC para comunicação de vídeo
 - **Frontend**: Interfaces web responsivas
 - **QR Generator**: Geração automática de QR codes
-- **Status Dashboard**: Monitoramento em tempo real
+- **Status Dashboard (demo)**: Página exemplo de metricas
 
 ## 🔧 API Endpoints
 
@@ -114,13 +108,18 @@ QRKit/
 
 ## 🧪 Testes
 
-O sistema inclui várias ferramentas de teste:
+Atualmente não existe uma suíte automatizada. Os testes são executados manualmente utilizando as páginas HTML de apoio.
 
-### Dashboard de Status em Tempo Real
-- Monitor automatizado do sistema
-- Métricas de performance
-- Testes de conectividade
-- Log de atividades
+
+### Páginas HTML de teste
+Arquivos em `static/` (por exemplo `comprehensive-test.html`,
+`debug-webrtc.html` e `live-video-test.html`) permitem testar manualmente câmera,
+microfone e a integração com o LiveKit.
+
+### Dashboard de Status (Demo)
+- Esta página em `static/status-dashboard.html` demonstra um possível painel de métricas.
+- Os valores são simulados no navegador e não representam dados reais do servidor.
+
 
 ### Suite de Testes Abrangente
 - Testes de API
@@ -133,12 +132,20 @@ O sistema inclui várias ferramentas de teste:
 - Diagnósticos detalhados
 - Simulação de cenários
 
+### Automação de Testes
+Para o futuro, é possível adicionar testes automatizados utilizando:
+- `go test` para unidades e integrações no código Go.
+- Ferramentas como **Playwright** para testar a interface web de forma
+  end‑to‑end.
+
 ## 🐳 Docker
 
 ### Serviços Incluídos:
 
 - **qrkit**: Aplicação Go principal (porta 8080)
 - **livekit**: Servidor LiveKit (porta 7880)
+- **db**: PostgreSQL com volume persistente
+- **redis**: Cache/filas (porta 6379)
 
 ### Configuração:
 
@@ -150,6 +157,8 @@ services:
     ports:
       - "8080:8080"
     depends_on:
+      - db
+      - redis
       - livekit
 
   livekit:
@@ -158,6 +167,19 @@ services:
       - "7880:7880"
       - "7881:7881/udp"
       - "50000-50100:50000-50100/udp"
+
+  db:
+    image: postgres:15
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:
 ```
 
 ## 🔐 Configuração
@@ -167,6 +189,10 @@ services:
 - `LIVEKIT_API_KEY`: Chave da API LiveKit (padrão: "mykey")
 - `LIVEKIT_API_SECRET`: Secret da API LiveKit (padrão: "mysecret")
 - `LIVEKIT_HOST`: Host do servidor LiveKit (padrão: "localhost:7880")
+- `DATABASE_URL`: String de conexão PostgreSQL (padrão: `postgres://qrkit:qrkitpass@db:5432/qrkit?sslmode=disable`)
+- `REDIS_URL`: Endereço do Redis (padrão: `redis://redis:6379`)
+
+QRKit lê essas variáveis para conectar ao banco de dados e ao cache automaticamente quando os containers estão ativos.
 
 ### LiveKit Configuration:
 
@@ -199,7 +225,7 @@ development: true
 2. **Câmera não funciona**:
    - Verifique permissões do navegador
    - Use HTTPS em produção
-   - Teste com o Dashboard de Status
+   - Use a página de Dashboard de Status (demo) para checar o frontend
 
 3. **LiveKit não conecta**:
    ```bash
@@ -219,10 +245,9 @@ development: true
 
 ```bash
 # Teste completo do sistema
-./start.sh
 
 # Verificação de status
-curl http://localhost:8080/status
+curl http://localhost:8080/status (apenas cliente)
 
 # Teste de API
 curl -X POST http://localhost:8080/api/create-session
@@ -246,12 +271,12 @@ curl -X POST http://localhost:8080/api/create-session
 
 ## 📊 Monitoramento
 
-O sistema inclui monitoramento abrangente:
+Esta aplicação inclui apenas a página `static/status-dashboard.html` como demonstração de frontend. Ela não fornece métricas reais do servidor.
 
-- **Métricas em Tempo Real**: Uptime, requests, response times
-- **Status de Componentes**: Servidor, APIs, WebRTC, LiveKit
-- **Logs de Atividade**: Histórico de operações
-- **Alertas Visuais**: Indicadores de status coloridos
+Para monitoramento de produção, considere integrar Prometheus e Grafana:
+1. Exponha métricas no servidor Go usando o cliente Prometheus.
+2. Execute Prometheus e Grafana (por exemplo via Docker).
+3. Crie dashboards no Grafana apontando para seu Prometheus.
 
 ## 🤝 Contribuição
 
@@ -264,7 +289,7 @@ Para contribuir com o projeto:
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo LICENSE para detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
 
 ## 🆘 Suporte
 
@@ -273,7 +298,7 @@ Para suporte:
 1. Verifique a documentação acima
 2. Use as ferramentas de debug incluídas
 3. Consulte os logs do sistema
-4. Acesse o Dashboard de Status para diagnósticos
+4. Acesse o Dashboard de Status (demo) para diagnósticos
 
 ---
 

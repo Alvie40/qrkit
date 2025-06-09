@@ -24,8 +24,6 @@
 
 ### 🔧 Testing Infrastructure
 - **Manual Test Guide**: ✅ **CREATED** (`MANUAL-TEST-GUIDE.md`)
-- **End-to-End Test Script**: ✅ **CREATED** (`end-to-end-test.sh`)
-- **LiveKit Test Script**: ✅ **CREATED** (`test-livekit.sh`)
 - **Live Video Test Page**: ✅ **CREATED** (`static/live-video-test.html`)
 
 ---
