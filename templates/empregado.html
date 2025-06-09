@@ -25,7 +25,7 @@
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 1200px;
+            max-width: 800px;
             width: 100%;
             margin: 20px;
         }
@@ -46,34 +46,21 @@
             font-size: 1.1em;
         }
         
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            align-items: start;
-        }
-        
         .controls-section {
             background: #f8f9fa;
             padding: 30px;
             border-radius: 15px;
             border: 2px solid #e9ecef;
+            text-align: center;
         }
-        
-        .video-section {
-            background: #000;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            aspect-ratio: 16/9;
-        }
-        
+                
         .section-title {
             font-size: 1.5em;
             color: #333;
             margin-bottom: 20px;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
         }
         
@@ -87,8 +74,10 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            width: 100%;
+            width: auto;
+            min-width: 200px;
             margin-bottom: 15px;
+            display: inline-block;
         }
         
         .btn:hover {
@@ -101,15 +90,7 @@
             cursor: not-allowed;
             transform: none;
         }
-        
-        .btn.success {
-            background: #28a745;
-        }
-        
-        .btn.success:hover {
-            background: #218838;
-        }
-        
+                
         .qr-container {
             text-align: center;
             margin-top: 20px;
@@ -120,9 +101,10 @@
         }
         
         .qr-code {
-            max-width: 100%;
+            max-width: 200px;
             height: auto;
             border-radius: 10px;
+            margin: 0 auto;
         }
         
         .session-info {
@@ -131,6 +113,7 @@
             border-radius: 10px;
             margin-top: 15px;
             border-left: 4px solid #2196f3;
+            text-align: left;
         }
         
         .session-info h4 {
@@ -144,27 +127,12 @@
             word-break: break-all;
         }
         
-        .video-local {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .video-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #666;
-            font-size: 1.2em;
-            background: #f8f9fa;
-        }
-        
         .status {
             padding: 10px 15px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             font-weight: 500;
+            min-height: 40px;
         }
         
         .status.info {
@@ -186,11 +154,6 @@
         }
         
         @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
             .container {
                 margin: 10px;
                 padding: 20px;
@@ -205,252 +168,179 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>👨‍💼 Employee Interface</h1>
-            <p>Create video sessions and generate QR codes for clients</p>
+            <h1>👨‍💼 Employee Queue & Call</h1>
+            <p>Join the queue to be assigned a video conference with a client.</p>
         </div>
         
-        <div class="main-content">
-            <div class="controls-section">
-                <h2 class="section-title">🎯 Session Control</h2>
-                
-                <div id="status" class="status info">
-                    Ready to start a new session
-                </div>
-                
-                <button id="createSessionBtn" class="btn">Create New Session</button>
-                <button id="startVideoBtn" class="btn" disabled>Start Video Call</button>
-                <button id="endSessionBtn" class="btn" disabled>End Session</button>
-                
-                <div id="qrContainer" class="qr-container" style="display: none;">
-                    <h4>📱 Client QR Code</h4>
-                    <img id="qrCode" class="qr-code" alt="QR Code" />
-                    <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
-                        Client can scan this code to join the video call
-                    </p>
-                </div>
-                
-                <div id="sessionInfo" class="session-info" style="display: none;">
-                    <h4>📋 Session Information</h4>
-                    <p><strong>Session ID:</strong> <span id="sessionId"></span></p>
-                    <p><strong>Room Name:</strong> <span id="roomName"></span></p>
-                    <p><strong>Client URL:</strong> <span id="clientUrl"></span></p>
-                </div>
+        <div class="controls-section">
+            <h2 class="section-title">🎟️ Queue System</h2>
+            
+            <div id="status" class="status info">
+                Welcome! Click "Enter Queue" to get started.
             </div>
             
-            <div class="video-section">
-                <h2 class="section-title" style="position: absolute; top: 15px; left: 15px; color: white; z-index: 10;">
-                    📹 Your Video
-                </h2>
-                <video id="localVideo" class="video-local" autoplay muted playsinline style="display: none;"></video>
-                <div id="videoPlaceholder" class="video-placeholder">
-                    📷 Click "Start Video Call" to begin
-                </div>
+            <button id="enterQueueBtn" class="btn">Enter Queue</button>
+            <button id="joinVideoCallBtn" class="btn" style="display: none;">Join Video Call</button>
+            
+            <div id="qrContainer" class="qr-container" style="display: none;">
+                <h4>📱 Client QR Code</h4>
+                <img id="qrCode" class="qr-code" alt="QR Code for Client" />
+                <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                    The client can scan this code to join the video call.
+                </p>
+            </div>
+            
+            <div id="sessionInfo" class="session-info" style="display: none;">
+                <h4>📋 Assigned Session Information</h4>
+                <p><strong>Session ID:</strong> <span id="sessionId"></span></p>
+                <p><strong>Room Name:</strong> <span id="roomName"></span></p>
+                <p><strong>Client URL:</strong> <span id="clientUrl"></span></p>
+                <p><strong>Your Join URL:</strong> <a id="employeeJoinLink" href="#" target="_blank">Click to Join</a></p>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/livekit-client@1.15.4/dist/livekit-client.umd.min.js"></script>
     <script>
-        const { Room, LocalParticipant, RemoteParticipant, RoomEvent, createLocalVideoTrack } = LiveKitClient;
-        
         let currentSession = null;
-        let room = null;
-        let localVideoTrack = null;
-        
+        let ticketId = null;
+        let pollingInterval = null;
+        const POLLING_RATE_MS = 3000; // Poll every 3 seconds
+
         const elements = {
             status: document.getElementById('status'),
-            createSessionBtn: document.getElementById('createSessionBtn'),
-            startVideoBtn: document.getElementById('startVideoBtn'),
-            endSessionBtn: document.getElementById('endSessionBtn'),
+            enterQueueBtn: document.getElementById('enterQueueBtn'),
+            joinVideoCallBtn: document.getElementById('joinVideoCallBtn'),
             qrContainer: document.getElementById('qrContainer'),
             qrCode: document.getElementById('qrCode'),
             sessionInfo: document.getElementById('sessionInfo'),
             sessionId: document.getElementById('sessionId'),
             roomName: document.getElementById('roomName'),
             clientUrl: document.getElementById('clientUrl'),
-            localVideo: document.getElementById('localVideo'),
-            videoPlaceholder: document.getElementById('videoPlaceholder')
+            employeeJoinLink: document.getElementById('employeeJoinLink')
         };
-        
+
         function updateStatus(message, type = 'info') {
             elements.status.textContent = message;
             elements.status.className = `status ${type}`;
         }
-        
-        function updateButtons(createEnabled, startEnabled, endEnabled) {
-            elements.createSessionBtn.disabled = !createEnabled;
-            elements.startVideoBtn.disabled = !startEnabled;
-            elements.endSessionBtn.disabled = !endEnabled;
-        }
 
-        async function joinQueue(sessionId) {
+        async function enterQueue() {
+            updateStatus('Attempting to join the queue...', 'info');
+            elements.enterQueueBtn.disabled = true;
             try {
-                updateStatus('Joining queue...', 'info');
-                const resp = await fetch('/api/join-queue', {
+                const response = await fetch('/api/employee/enqueue', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId })
                 });
 
-                if (resp.redirected) {
-                    window.location.href = resp.url;
-                    return;
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: 'Failed to join queue. Please try again.' }));
+                    throw new Error(errorData.message || `Server error: ${response.status}`);
                 }
 
-                if (!resp.ok) {
-                    throw new Error('Failed to join queue');
-                }
+                const data = await response.json();
+                ticketId = data.ticketId;
+                updateStatus(`Successfully joined queue. Your Ticket ID: ${ticketId}. Waiting for assignment...`, 'success');
+                elements.enterQueueBtn.style.display = 'none';
+                startQueuePolling(ticketId);
 
-                const data = await resp.json().catch(() => null);
-                if (data && data.redirectUrl) {
-                    window.location.href = data.redirectUrl;
-                } else {
-                    updateStatus('Waiting for doctor to accept...', 'info');
-                }
             } catch (error) {
-                console.error('Error joining queue:', error);
-                updateStatus('Error joining queue: ' + error.message, 'error');
+                console.error('Error entering queue:', error);
+                updateStatus(`Error joining queue: ${error.message}`, 'error');
+                elements.enterQueueBtn.disabled = false;
             }
         }
+
+        function startQueuePolling(currentTicketId) {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            pollingInterval = setInterval(() => checkQueueStatus(currentTicketId), POLLING_RATE_MS);
+            checkQueueStatus(currentTicketId); // Initial check
+        }
+
+        async function checkQueueStatus(currentTicketId) {
+            if (!currentTicketId) return;
+
+            try {
+                const response = await fetch(`/api/employee/queue-status?ticket=${currentTicketId}`);
+                if (!response.ok) {
+                    // If session is not found (404), it might mean ticket expired or was processed. Stop polling.
+                    if (response.status === 404) {
+                        updateStatus('Your queue ticket is no longer active. Please rejoin if needed.', 'error');
+                        stopPollingAndReset();
+                        return;
+                    }
+                    throw new Error(`Failed to get queue status: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'assigned') {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    currentSession = data.sessionDetails;
+                    
+                    updateStatus(`Your turn! You've been assigned to session: ${currentSession.roomName}`, 'success');
+                    
+                    elements.sessionId.textContent = currentSession.sessionId;
+                    elements.roomName.textContent = currentSession.roomName;
+                    elements.clientUrl.textContent = currentSession.clientUrl;
+                    elements.employeeJoinLink.href = currentSession.employeeRedirectUrl;
+                    elements.sessionInfo.style.display = 'block';
+                    
+                    elements.qrCode.src = `/api/qr/${currentSession.sessionId}`;
+                    elements.qrContainer.style.display = 'block';
+                    
+                    elements.joinVideoCallBtn.style.display = 'inline-block';
+                    elements.enterQueueBtn.style.display = 'none';
+
+                } else if (data.status === 'queued') {
+                    updateStatus(`You are in the queue. Position: ${data.position}. Ticket: ${currentTicketId}`, 'info');
+                } else {
+                    updateStatus(`Unknown queue status: ${data.status}`, 'error');
+                    stopPollingAndReset();
+                }
+            } catch (error) {
+                console.error('Error checking queue status:', error);
+                updateStatus(`Error checking status: ${error.message}. Polling stopped.`, 'error');
+                stopPollingAndReset();
+            }
+        }
+        
+        function stopPollingAndReset() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            ticketId = null;
+            currentSession = null;
+            elements.enterQueueBtn.style.display = 'inline-block';
+            elements.enterQueueBtn.disabled = false;
+            elements.joinVideoCallBtn.style.display = 'none';
+            elements.qrContainer.style.display = 'none';
+            elements.sessionInfo.style.display = 'none';
+        }
+
+        elements.enterQueueBtn.addEventListener('click', enterQueue);
+
+        elements.joinVideoCallBtn.addEventListener('click', () => {
+            if (currentSession && currentSession.employeeRedirectUrl) {
+                updateStatus('Redirecting to video call...', 'info');
+                window.location.href = currentSession.employeeRedirectUrl;
+            } else {
+                updateStatus('Error: Video call URL not available.', 'error');
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
-            const sessionFromQuery = params.get('session');
-            if (sessionFromQuery) {
-                updateButtons(false, false, false);
-                joinQueue(sessionFromQuery);
+            if (params.get('action') === 'joinQueueViaQR') {
+                enterQueue();
+            } else {
+                 updateStatus('Welcome! Click "Enter Queue" to get started or scan an admin-provided QR code.', 'info');
             }
         });
-        
-        elements.createSessionBtn.addEventListener('click', async () => {
-            try {
-                updateStatus('Creating new session...', 'info');
-                updateButtons(false, false, false);
-                
-                const response = await fetch('/api/create-session', {
-                    method: 'POST'
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to create session');
-                }
-                
-                currentSession = await response.json();
-                
-                // Display session information
-                elements.sessionId.textContent = currentSession.sessionId;
-                elements.roomName.textContent = currentSession.roomName;
-                elements.clientUrl.textContent = currentSession.clientUrl;
-                elements.sessionInfo.style.display = 'block';
-                
-                // Generate and display QR code
-                elements.qrCode.src = `/api/qr/${currentSession.sessionId}`;
-                elements.qrContainer.style.display = 'block';
-                
-                updateStatus('Session created successfully! Generate QR code for client.', 'success');
-                updateButtons(true, true, false);
-                
-            } catch (error) {
-                console.error('Error creating session:', error);
-                updateStatus('Error creating session: ' + error.message, 'error');
-                updateButtons(true, false, false);
-            }
-        });
-        
-        elements.startVideoBtn.addEventListener('click', async () => {
-            try {
-                updateStatus('Starting video call...', 'info');
-                updateButtons(false, false, false);
-                
-                // Get camera access
-                localVideoTrack = await createLocalVideoTrack({
-                    resolution: {
-                        width: 1280,
-                        height: 720
-                    }
-                });
-                
-                // Display local video
-                localVideoTrack.attach(elements.localVideo);
-                elements.localVideo.style.display = 'block';
-                elements.videoPlaceholder.style.display = 'none';
-                
-                // Get LiveKit token
-                const tokenResponse = await fetch(`/api/token?room=${currentSession.roomName}&identity=employee`);
-                if (!tokenResponse.ok) {
-                    throw new Error('Failed to get token');
-                }
-                const tokenData = await tokenResponse.json();
-                
-                // Connect to LiveKit room
-                room = new Room();
-                
-                room.on(RoomEvent.ParticipantConnected, (participant) => {
-                    updateStatus(`Client joined the call: ${participant.identity}`, 'success');
-                });
-                
-                room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-                    updateStatus(`Client left the call: ${participant.identity}`, 'info');
-                });
-                
-                room.on(RoomEvent.Disconnected, () => {
-                    updateStatus('Disconnected from room', 'info');
-                    cleanupVideo();
-                    updateButtons(true, false, false);
-                });
-                
-                await room.connect('ws://localhost:7880', tokenData.token);
-                
-                // Publish local video track
-                await room.localParticipant.publishTrack(localVideoTrack);
-                
-                updateStatus('Video call started! Waiting for client to join...', 'success');
-                updateButtons(false, false, true);
-                
-            } catch (error) {
-                console.error('Error starting video:', error);
-                updateStatus('Error starting video: ' + error.message, 'error');
-                cleanupVideo();
-                updateButtons(true, true, false);
-            }
-        });
-        
-        elements.endSessionBtn.addEventListener('click', async () => {
-            try {
-                updateStatus('Ending session...', 'info');
-                
-                if (room) {
-                    room.disconnect();
-                    room = null;
-                }
-                
-                cleanupVideo();
-                
-                currentSession = null;
-                elements.sessionInfo.style.display = 'none';
-                elements.qrContainer.style.display = 'none';
-                
-                updateStatus('Session ended', 'info');
-                updateButtons(true, false, false);
-                
-            } catch (error) {
-                console.error('Error ending session:', error);
-                updateStatus('Error ending session: ' + error.message, 'error');
-            }
-        });
-        
-        function cleanupVideo() {
-            if (localVideoTrack) {
-                localVideoTrack.stop();
-                localVideoTrack = null;
-            }
-            
-            elements.localVideo.style.display = 'none';
-            elements.videoPlaceholder.style.display = 'flex';
-        }
-        
-        // Initialize
-        updateButtons(true, false, false);
     </script>
 </body>
 </html>
