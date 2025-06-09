@@ -172,7 +172,7 @@
       log('Iniciando teste de conectividade com backend...');
       
       try {
-        const response = await fetch('/token?room=test&identity=debug-user');
+        const response = await fetch('/api/token?room=test&identity=debug-user');
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

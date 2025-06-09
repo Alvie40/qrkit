@@ -187,7 +187,7 @@
 
                 // Passo 4: Solicitar token
                 addLog('Passo 3: Solicitando token JWT...');
-                const tokenResponse = await fetch('/token', {
+                const tokenResponse = await fetch('/api/token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
