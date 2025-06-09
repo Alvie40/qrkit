@@ -29,25 +29,149 @@
         .qr img {
             max-width: 200px;
         }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.info {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+        .status.success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .status.warning {
+            background-color: #fcf8e3;
+            color: #8a6d3b;
+        }
+        .status.error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
     </style>
 </head>
 <body>
     <h1>Área Administrativa</h1>
-    <button id="createBtn" class="btn">Criar Sessão</button>
-    <div id="qr" class="qr" style="display:none;">
-        <h3>QR Code da Sessão</h3>
-        <img id="qrImg" src="" alt="QR Code">
+    <div class="main-content">
+        <div class="controls-section">
+            <h2 class="section-title">🎯 Session Control</h2>
+            
+            <div id="status" class="status info">
+                Ready
+            </div>
+
+            <button id="showQueueQRBtn" class="btn">Show QR for Employee Queue</button>
+            <img id="queueQREntryImg" src="" alt="Queue Entry QR Code" style="display:none; max-width: 200px; margin: 10px auto;">
+            
+            <button id="callNextEmployeeBtn" class="btn">Call Next Employee</button>
+            
+            <div id="currentCallInfo" style="display:none; margin-top: 15px; padding:10px; border: 1px solid #ccc;">
+                <h4>Current Call Details:</h4>
+                <p><strong>Session ID:</strong> <span id="adminCallSessionId"></span></p>
+                <p><strong>Room Name:</strong> <span id="adminCallRoomName"></span></p>
+                <p><strong>Client URL:</strong> <a id="adminCallClientUrl" href="#" target="_blank"></a></p>
+                <p><a id="adminJoinVideoUrl" href="#" class="btn success" target="_blank" style="margin-top:10px;">Join Video Call</a></p>
+            </div>
+
+            <hr style="margin: 20px 0;">
+            <h3>Create Direct Session (Legacy)</h3>
+            <button id="createSessionBtn" class="btn">Create Direct Session</button> 
+            <div id="qrContainer" class="qr-container" style="display: none;">
+                <h3>QR Code da Sessão</h3>
+                <img id="qrImg" src="" alt="QR Code">
+            </div>
+        </div>
     </div>
     <script>
-        document.getElementById('createBtn').addEventListener('click', async () => {
+        const elements = {
+            createSessionBtn: document.getElementById('createSessionBtn'),
+            qrCode: document.getElementById('qrImg'),
+            qrContainer: document.getElementById('qrContainer'),
+            sessionInfo: document.createElement('div'),
+            sessionId: document.createElement('p'),
+            roomName: document.createElement('p'),
+            clientUrl: document.createElement('p')
+        };
+
+        elements.sessionInfo.style.display = 'none';
+        document.body.appendChild(elements.sessionInfo);
+        elements.sessionInfo.appendChild(elements.sessionId);
+        elements.sessionInfo.appendChild(elements.roomName);
+        elements.sessionInfo.appendChild(elements.clientUrl);
+
+        function updateStatus(message, status) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${status}`;
+        }
+
+        function updateButtons(createEnabled) {
+            elements.createSessionBtn.disabled = !createEnabled;
+        }
+
+        document.getElementById('createSessionBtn').addEventListener('click', async () => {
             const resp = await fetch('/api/create-session', {method: 'POST'});
             if (!resp.ok) {
-                alert('Erro ao criar sessão');
+                alert('Erro ao criar sessão direta');
                 return;
             }
             const data = await resp.json();
             document.getElementById('qrImg').src = '/api/qr/' + data.sessionId;
-            document.getElementById('qr').style.display = 'block';
+            document.getElementById('qrContainer').style.display = 'block';
+            // Enable create button again for multiple direct sessions
+            document.getElementById('createSessionBtn').disabled = false; 
+        });
+
+        document.getElementById('showQueueQRBtn').addEventListener('click', () => {
+            const qrImg = document.getElementById('queueQREntryImg');
+            // Add a cache-busting query parameter to ensure the QR code is re-fetched
+            qrImg.src = '/api/admin/employee-queue-entry-qr?t=' + new Date().getTime(); 
+            qrImg.style.display = 'block';
+        });
+
+        document.getElementById('callNextEmployeeBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('status');
+            const currentCallInfoDiv = document.getElementById('currentCallInfo');
+            try {
+                statusDiv.textContent = 'Calling next employee...';
+                statusDiv.className = 'status info';
+                currentCallInfoDiv.style.display = 'none';
+
+                const response = await fetch('/api/admin/call-next-employee', { method: 'POST' });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to call next employee');
+                }
+
+                if (data.status === 'queue_empty') {
+                    statusDiv.textContent = data.message;
+                    statusDiv.className = 'status warning';
+                    return;
+                }
+
+                if (data.status === 'employee_called') {
+                    statusDiv.textContent = `Employee with ticket ${data.ticketId} called. Session: ${data.sessionId}`;
+                    statusDiv.className = 'status success';
+                    
+                    document.getElementById('adminCallSessionId').textContent = data.sessionId;
+                    document.getElementById('adminCallRoomName').textContent = data.roomName;
+                    const clientUrlLink = document.getElementById('adminCallClientUrl');
+                    clientUrlLink.href = data.clientUrl;
+                    clientUrlLink.textContent = data.clientUrl;
+                    document.getElementById('adminJoinVideoUrl').href = data.adminVideoUrl;
+                    currentCallInfoDiv.style.display = 'block';
+                } else {
+                    throw new Error(data.message || 'Unknown response from server');
+                }
+
+            } catch (error) {
+                console.error('Error calling next employee:', error);
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'status error';
+            }
         });
     </script>
 </body>
