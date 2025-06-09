@@ -3,8 +3,8 @@ version: "3.8"
 services:
   qrkit:
     build: .
-    ports:
-      - "8081:8080"
+    # NÃO exponha portas manualmente no Compose para produção no Coolify!
+    # Coolify vai cuidar do roteamento para você via domínio e HTTPS.
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates
@@ -12,7 +12,11 @@ services:
       - LIVEKIT_API_KEY=mykey
       - LIVEKIT_API_SECRET=mysecret
       - LIVEKIT_HOST=livekit:7880
+      - DATABASE_URL=postgres://qrkit:qrkitpass@db:5432/qrkit?sslmode=disable
+      - REDIS_URL=redis://redis:6379
     depends_on:
+      - db
+      - redis
       - livekit
 
   livekit:
@@ -26,3 +30,23 @@ services:
       - ./livekit-local.yaml:/livekit.yaml
     environment:
       - "LIVEKIT_KEYS=mykey:mysecret"
+
+  db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: qrkit
+      POSTGRES_PASSWORD: qrkitpass
+      POSTGRES_DB: qrkit
+
+  redis:
+    image: redis:7
+    restart: always
+    # NÃO precisa expor a porta para o mundo, só para a rede interna!
+    # ports:
+    #   - "6379:6379"
+
+volumes:
+  db-data:
