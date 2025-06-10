@@ -16,7 +16,6 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-const defaultPort = "3000"
 
 var sessions = make(map[string]string) // sessionId -> roomName
 var lastRoom string
@@ -71,7 +70,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-     port = 3000
+     port = "3000"
 	}
 
 	log.Printf("Server on :%s", port)
