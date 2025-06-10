@@ -1,6 +1,8 @@
 services:
   qrkit:
     build: .
+    ports:
+      - "3000:3000"
     # NÃO exponha portas manualmente no Compose para produção no Coolify!
     # Coolify vai cuidar do roteamento para você via domínio e HTTPS.
     volumes:
