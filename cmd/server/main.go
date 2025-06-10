@@ -85,7 +85,7 @@ func getBaseURL(r *http.Request, port string) string {
 	if r != nil && r.Host != "" {
 		return fmt.Sprintf("%s://%s", scheme, r.Host)
 	}
-	return fmt.Sprintf("http://localhost:%s", port)
+	return fmt.Sprintf("%s://localhost:%s", scheme, port)
 }
 
 func generateNewTicketID() string {
