@@ -13,5 +13,5 @@ COPY . .
 
 RUN go build -o out ./cmd/server
 
-EXPOSE 3000
+EXPOSE 8080
 CMD ["./out"]
