@@ -22,10 +22,10 @@ services:
     command: --config /livekit.yaml
     ports:
       - "7880:7880"
-      - "7881:7881/udp"
+      - "7882:7882/udp" # Alinhado com udp_port: 7882 em livekit.yaml
       - "50000-50100:50000-50100/udp"
     volumes:
-      - ./livekit-local.yaml:/livekit.yaml
+      - ./livekit.yaml:/livekit.yaml # Alterado de ./livekit-local.yaml
     environment:
       - "LIVEKIT_KEYS=mykey:mysecret"
 
