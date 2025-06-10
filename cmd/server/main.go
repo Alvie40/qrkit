@@ -21,18 +21,18 @@ var lastRoom string
 
 // New data structures for the employee queue system
 var (
-	employeeTickets      []string // Stores ticketIDs of employees in the queue
-	employeeAssignments  = make(map[string]SessionDetails) // ticketID -> SessionDetails
-	nextTicketID       int64 = 1
-	queueMutex         sync.Mutex
-	assignmentsMutex   sync.Mutex
-	ticketIDMutex      sync.Mutex
+	employeeTickets     []string                                   // Stores ticketIDs of employees in the queue
+	employeeAssignments          = make(map[string]SessionDetails) // ticketID -> SessionDetails
+	nextTicketID        int64    = 1
+	queueMutex          sync.Mutex
+	assignmentsMutex    sync.Mutex
+	ticketIDMutex       sync.Mutex
 )
 
 type SessionDetails struct {
-	SessionID          string `json:"sessionId"`
-	RoomName           string `json:"roomName"`
-	ClientURL          string `json:"clientUrl"` // URL for the client to join the session
+	SessionID           string `json:"sessionId"`
+	RoomName            string `json:"roomName"`
+	ClientURL           string `json:"clientUrl"`           // URL for the client to join the session
 	EmployeeRedirectURL string `json:"employeeRedirectUrl"` // URL for the employee to join the video call
 }
 
@@ -73,7 +73,19 @@ func main() {
 	}
 
 	log.Printf("Server on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
+}
+
+// Utilitário para obter baseURL dinâmico
+func getBaseURL(r *http.Request, port string) string {
+	scheme := "http"
+	if r != nil && r.TLS != nil {
+		scheme = "https"
+	}
+	if r != nil && r.Host != "" {
+		return fmt.Sprintf("%s://%s", scheme, r.Host)
+	}
+	return fmt.Sprintf("%s://localhost:%s", scheme, port)
 }
 
 func generateNewTicketID() string {
@@ -157,11 +169,7 @@ func handleAdminQueueEntryQR(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
-	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
-		scheme := "http"
-		baseURL = fmt.Sprintf("%s://%s", scheme, r.Host)
-	}
+	baseURL := getBaseURL(r, port)
 
 	queueEntryURL := fmt.Sprintf("%s/empregado?action=joinQueueViaQR", baseURL)
 
@@ -185,20 +193,15 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 	if port == "" {
 		port = "3000"
 	}
-
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
-	if r != nil && r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
-		scheme := "http"
-		baseURL = fmt.Sprintf("%s://%s", scheme, r.Host)
-	}
+	baseURL := getBaseURL(r, port)
 
 	clientURL := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 	employeeRedirectURL := fmt.Sprintf("%s/video?room=%s&sessionId=%s&role=employee", baseURL, roomName, sessionId)
 
 	return SessionDetails{
-		SessionID:          sessionId,
-		RoomName:           roomName,
-		ClientURL:          clientURL,
+		SessionID:           sessionId,
+		RoomName:            roomName,
+		ClientURL:           clientURL,
 		EmployeeRedirectURL: employeeRedirectURL,
 	}, nil
 }
@@ -232,12 +235,12 @@ func handleAdminCallNextEmployee(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":             "employee_called",
-		"ticketId":           ticketID,
-		"sessionId":          sessionDetails.SessionID,
-		"roomName":           sessionDetails.RoomName,
-		"clientUrl":          sessionDetails.ClientURL,
-		"adminVideoUrl":      fmt.Sprintf("%s/video?room=%s&role=admin", strings.TrimSuffix(sessionDetails.EmployeeRedirectURL, fmt.Sprintf("&sessionId=%s&role=employee", sessionDetails.SessionID)), sessionDetails.RoomName),
+		"status":        "employee_called",
+		"ticketId":      ticketID,
+		"sessionId":     sessionDetails.SessionID,
+		"roomName":      sessionDetails.RoomName,
+		"clientUrl":     sessionDetails.ClientURL,
+		"adminVideoUrl": fmt.Sprintf("%s/video?room=%s&role=admin", strings.TrimSuffix(sessionDetails.EmployeeRedirectURL, fmt.Sprintf("&sessionId=%s&role=employee", sessionDetails.SessionID)), sessionDetails.RoomName),
 	})
 }
 
@@ -342,7 +345,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
+	baseURL := getBaseURL(r, port)
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
@@ -365,7 +368,7 @@ func getSessionInfo(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
+	baseURL := getBaseURL(r, port)
 
 	clientUrl := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 
@@ -384,7 +387,8 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
+	baseURL := getBaseURL(r, port)
+	clientUrl := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 
 	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
 	if err != nil {
