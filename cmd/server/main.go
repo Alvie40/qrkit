@@ -16,7 +16,6 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-
 var sessions = make(map[string]string) // sessionId -> roomName
 var lastRoom string
 
@@ -70,7 +69,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-     port = "3000"
+		port = "3000"
 	}
 
 	log.Printf("Server on :%s", port)
@@ -156,7 +155,7 @@ func handleEmployeeQueueStatus(w http.ResponseWriter, r *http.Request) {
 func handleAdminQueueEntryQR(w http.ResponseWriter, r *http.Request) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = "3000"
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
@@ -184,7 +183,7 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = "3000"
 	}
 
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
@@ -341,7 +340,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = "3000"
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 
@@ -364,13 +363,9 @@ func getSessionInfo(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = "3000"
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
-	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
-		scheme := "http"
-		baseURL = fmt.Sprintf("%s://%s", scheme, r.Host)
-	}
 
 	clientUrl := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 
@@ -387,7 +382,7 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+		port = "3000"
 	}
 	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
