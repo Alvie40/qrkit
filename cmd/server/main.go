@@ -16,6 +16,8 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+const defaultPort = "3000"
+
 var sessions = make(map[string]string) // sessionId -> roomName
 var lastRoom string
 
@@ -69,12 +71,11 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 
-	addr := ":" + port
-	log.Println("Server starting on", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Printf("Server on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func generateNewTicketID() string {
@@ -156,7 +157,7 @@ func handleEmployeeQueueStatus(w http.ResponseWriter, r *http.Request) {
 func handleAdminQueueEntryQR(w http.ResponseWriter, r *http.Request) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
@@ -184,7 +185,7 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
@@ -341,7 +342,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 
@@ -364,7 +365,7 @@ func getSessionInfo(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
@@ -387,7 +388,7 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000" // Changed default port to 3000
+		port = defaultPort
 	}
 	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
@@ -425,7 +426,7 @@ func generateToken(w http.ResponseWriter, r *http.Request) {
 		RoomJoin: true,
 		Room:     room,
 	}
-	at.AddGrant(grant).SetIdentity(identity)
+	at.SetIdentity(identity).SetVideoGrant(grant)
 
 	token, err := at.ToJWT()
 	if err != nil {
