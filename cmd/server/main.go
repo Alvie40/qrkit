@@ -76,6 +76,18 @@ func main() {
 	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
 
+// Utilitário para obter baseURL dinâmico
+func getBaseURL(r *http.Request, port string) string {
+	scheme := "http"
+	if r != nil && r.TLS != nil {
+		scheme = "https"
+	}
+	if r != nil && r.Host != "" {
+		return fmt.Sprintf("%s://%s", scheme, r.Host)
+	}
+	return fmt.Sprintf("http://localhost:%s", port)
+}
+
 func generateNewTicketID() string {
 	ticketIDMutex.Lock()
 	defer ticketIDMutex.Unlock()
@@ -157,11 +169,7 @@ func handleAdminQueueEntryQR(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
-	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
-		scheme := "http"
-		baseURL = fmt.Sprintf("%s://%s", scheme, r.Host)
-	}
+	baseURL := getBaseURL(r, port)
 
 	queueEntryURL := fmt.Sprintf("%s/empregado?action=joinQueueViaQR", baseURL)
 
@@ -185,12 +193,7 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 	if port == "" {
 		port = "3000"
 	}
-
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
-	if r != nil && r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
-		scheme := "http"
-		baseURL = fmt.Sprintf("%s://%s", scheme, r.Host)
-	}
+	baseURL := getBaseURL(r, port)
 
 	clientURL := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 	employeeRedirectURL := fmt.Sprintf("%s/video?room=%s&sessionId=%s&role=employee", baseURL, roomName, sessionId)
@@ -342,7 +345,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
+	baseURL := getBaseURL(r, port)
 
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, `{"sessionId": "%s", "roomName": "%s", "clientUrl": "%s/cliente/%s"}`, sessionId, roomName, baseURL, sessionId)
@@ -365,7 +368,7 @@ func getSessionInfo(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	baseURL := fmt.Sprintf("http://localhost:%s", port)
+	baseURL := getBaseURL(r, port)
 
 	clientUrl := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 
@@ -384,7 +387,8 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 	if port == "" {
 		port = "3000"
 	}
-	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
+	baseURL := getBaseURL(r, port)
+	clientUrl := fmt.Sprintf("%s/cliente/%s", baseURL, sessionId)
 
 	png, err := qrcode.Encode(clientUrl, qrcode.Medium, 256)
 	if err != nil {
