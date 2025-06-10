@@ -71,7 +71,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = defaultPort
+     port = 3000
 	}
 
 	log.Printf("Server on :%s", port)

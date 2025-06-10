@@ -96,7 +96,8 @@
         };
 
         elements.sessionInfo.style.display = 'none';
-        document.body.appendChild(elements.sessionInfo);
+        const sessionInfoContainer = document.getElementById('sessionInfoContainer');
+        sessionInfoContainer.appendChild(elements.sessionInfo);
         elements.sessionInfo.appendChild(elements.sessionId);
         elements.sessionInfo.appendChild(elements.roomName);
         elements.sessionInfo.appendChild(elements.clientUrl);
