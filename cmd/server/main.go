@@ -21,18 +21,18 @@ var lastRoom string
 
 // New data structures for the employee queue system
 var (
-	employeeTickets      []string // Stores ticketIDs of employees in the queue
-	employeeAssignments  = make(map[string]SessionDetails) // ticketID -> SessionDetails
-	nextTicketID       int64 = 1
-	queueMutex         sync.Mutex
-	assignmentsMutex   sync.Mutex
-	ticketIDMutex      sync.Mutex
+	employeeTickets     []string                                   // Stores ticketIDs of employees in the queue
+	employeeAssignments          = make(map[string]SessionDetails) // ticketID -> SessionDetails
+	nextTicketID        int64    = 1
+	queueMutex          sync.Mutex
+	assignmentsMutex    sync.Mutex
+	ticketIDMutex       sync.Mutex
 )
 
 type SessionDetails struct {
-	SessionID          string `json:"sessionId"`
-	RoomName           string `json:"roomName"`
-	ClientURL          string `json:"clientUrl"` // URL for the client to join the session
+	SessionID           string `json:"sessionId"`
+	RoomName            string `json:"roomName"`
+	ClientURL           string `json:"clientUrl"`           // URL for the client to join the session
 	EmployeeRedirectURL string `json:"employeeRedirectUrl"` // URL for the employee to join the video call
 }
 
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	log.Printf("Server on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
 }
 
 func generateNewTicketID() string {
@@ -196,9 +196,9 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 	employeeRedirectURL := fmt.Sprintf("%s/video?room=%s&sessionId=%s&role=employee", baseURL, roomName, sessionId)
 
 	return SessionDetails{
-		SessionID:          sessionId,
-		RoomName:           roomName,
-		ClientURL:          clientURL,
+		SessionID:           sessionId,
+		RoomName:            roomName,
+		ClientURL:           clientURL,
 		EmployeeRedirectURL: employeeRedirectURL,
 	}, nil
 }
@@ -232,12 +232,12 @@ func handleAdminCallNextEmployee(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":             "employee_called",
-		"ticketId":           ticketID,
-		"sessionId":          sessionDetails.SessionID,
-		"roomName":           sessionDetails.RoomName,
-		"clientUrl":          sessionDetails.ClientURL,
-		"adminVideoUrl":      fmt.Sprintf("%s/video?room=%s&role=admin", strings.TrimSuffix(sessionDetails.EmployeeRedirectURL, fmt.Sprintf("&sessionId=%s&role=employee", sessionDetails.SessionID)), sessionDetails.RoomName),
+		"status":        "employee_called",
+		"ticketId":      ticketID,
+		"sessionId":     sessionDetails.SessionID,
+		"roomName":      sessionDetails.RoomName,
+		"clientUrl":     sessionDetails.ClientURL,
+		"adminVideoUrl": fmt.Sprintf("%s/video?room=%s&role=admin", strings.TrimSuffix(sessionDetails.EmployeeRedirectURL, fmt.Sprintf("&sessionId=%s&role=employee", sessionDetails.SessionID)), sessionDetails.RoomName),
 	})
 }
 
