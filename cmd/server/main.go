@@ -69,7 +69,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 
 	addr := ":" + port
@@ -156,7 +156,7 @@ func handleEmployeeQueueStatus(w http.ResponseWriter, r *http.Request) {
 func handleAdminQueueEntryQR(w http.ResponseWriter, r *http.Request) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
@@ -184,7 +184,7 @@ func createSessionInternal(r *http.Request) (SessionDetails, error) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
@@ -341,7 +341,7 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 
@@ -364,7 +364,7 @@ func getSessionInfo(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 	baseURL := fmt.Sprintf("http://localhost:%s", port)
 	if r.Host != "" && !strings.HasPrefix(r.Host, "localhost") {
@@ -387,7 +387,7 @@ func generateQRCode(w http.ResponseWriter, r *http.Request) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "3000" // Changed default port to 3000
 	}
 	clientUrl := fmt.Sprintf("http://localhost:%s/cliente/%s", port, sessionId)
 
